@@ -7,10 +7,13 @@
 - **Variáveis** devem ser escritas em **português**
 
 ## Variáveis
-- Nome das **variáveis** devem ser escritas em **lowerCamelCase**
+- Nome das **variáveis** devem ser escritas em **snake_case**
 
 ## Funções
-- Nome das **funções** devem ser escritas em **lowerCamelCase**
+- Nome das **funções** devem ser escritas em **snake_case**
+
+## Arquivos
+- Nome dos **arquivos** devem ser escritos em **snake_case**
 
 ## Implementações
 - [ ] Segue a linha (Controle proporcional) 
