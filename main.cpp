@@ -5,12 +5,15 @@
 
 using namespace Pololu3piPlus32U4;
 
+
 /*======================== CONSTANTES ========================*/
 #define PINO_TRIGGER_SU 7 // Trigger sensor ultrassom
 #define PINO_ECHO_SU 8 // Echo sensor ultrassom
 #define NUM_SENSORS 5 // Número de sensores do robô (mudar se for 3)
 
-/*======================== PROGRAMA PRINCIPAL ========================*/
+
+/*======================== Variáveis ========================*/
+
 /*===== Variáveis globais =====*/
 int colunas_lcd = 16; // Número de colunas do display LCD
 int linhas_lcd = 2; // Número de linhas do display LCD
@@ -30,6 +33,9 @@ uint16_t velocidade_base = velocidade_max;       // Velocidade base dos motores 
 uint16_t velocidade_calibracao = 60;             // Velocidade dos motores durante a calibração.
 uint16_t coef_proporcional = 64;                 // Coeficiente do termo proporcional
 uint16_t coef_derivativo = 256;                  // Coeficiente do termo derivativo
+
+/*======================== PROGRAMA PRINCIPAL ========================*/
+
 
 void setup() {
   Serial.begin(9600); // Inicializando a comunicação serial
@@ -52,9 +58,14 @@ void loop() {
   lcd.print(distancia_parede); 
   
 
-  if (distancia_parede < 5) { // Se a distancia for menor que 5 cm
-    // Vira o robo para a esqurda 90° e mede de novo
+  //TODO: detecta o cruzamento
+  ehCruzamento = verificaCruzamento();
+
+  //TODO: verificar entorno
+  if (ehCruzamento) {
+    verificaEntorno();
   }
+  
 
   /* Caminho do robo livre, segue reto */
 
@@ -79,6 +90,8 @@ void loop() {
 
 
 /*======================== FUNÇÕES AUXILIARES ========================*/
+
+
 long mede_distancia_su(int pino_trigger, int pino_echo) {
   /*===== HC­SR04 Ultrasonic Sensor =====*/
   /* Fazendo o sinal de trigger para o sensor antes da medição de fato */
@@ -92,23 +105,27 @@ long mede_distancia_su(int pino_trigger, int pino_echo) {
 
   /* Converter o tempo em distância */
   long distancia = microssegundos_para_cm(duracao);
+
+  //TODO: adiciona filtragem
   return distancia;
 }
 
 long microssegundos_para_cm(long microssegundos) {
-  return microssegundos / 29 / 2;
+  // velocidade do som: 334 m/s 
+  // 343 m/s == 0.0343 cm/uS = 1/29.1 cm/uS
+
+  // (tempo_viagem / 2) * velocidade do som = distancia
+  return microssegundos/2 / 29 ;
 }
 
-void calibra_sensores()
-{
-  //todo implementar display
+void calibra_sensores(){
+  //TODO: implementar display
   //display.clear();
 
   // espera 1 segundo e começa a calibração
   // rodando e passando os sensores por cima da linha
   delay(1000);
-  for(uint16_t i = 0; i < 80; i++)
-  {
+  for(uint16_t i = 0; i < 80; i++){
     if (i > 20 && i <= 60)
     {
       motores.setSpeeds(-(int16_t)velocidade_calibracao, velocidade_calibracao);
@@ -120,5 +137,31 @@ void calibra_sensores()
 
     sensores_linha.calibrate();
   }
+
   motores.setSpeeds(0, 0);
+}
+
+bool verificaCruzamento(){
+
+  // lê sensor de cruzamento esquerdo 
+  // se tiver detectando linha preta, então é cruzamento
+
+}
+
+void verificaEntorno(){
+  // Vira o robo para a esquerda 90° (lado esquerdo)
+  // Mede de novo
+  // Se distancia < 5, então bloqueado
+  // Senão, segue nessa direção
+  
+  // Vira o robo para a direita 90° (frente)
+  // Mede de novo
+  // Se distancia < 5, então bloqueado
+  // Senão, segue nessa direção
+
+  // Vira o robo para a direita 90° (lado direito)
+  // Mede de novo
+  // Se distancia < 5, então bloqueado
+  // Senão, segue nessa direção
+
 }
