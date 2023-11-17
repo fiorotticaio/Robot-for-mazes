@@ -10,6 +10,8 @@ using namespace Pololu3piPlus32U4;
 #define PINO_TRIGGER_SU 7 // Trigger sensor ultrassom
 #define PINO_ECHO_SU 8 // Echo sensor ultrassom
 #define NUM_SENSORS 5 // Número de sensores do robô (mudar se for 3)
+#define HIGH 1
+#define LOW 0
 
 
 /*======================== Variáveis ========================*/
@@ -34,9 +36,13 @@ uint16_t velocidade_calibracao = 60;             // Velocidade dos motores duran
 uint16_t coef_proporcional = 64;                 // Coeficiente do termo proporcional
 uint16_t coef_derivativo = 256;                  // Coeficiente do termo derivativo
 
+unsigned char found_left = '\0';
+unsigned char found_right = '\0';
+unsigned char found_straight = '\0';
+
+
+
 /*======================== PROGRAMA PRINCIPAL ========================*/
-
-
 void setup() {
   Serial.begin(9600); // Inicializando a comunicação serial
 
@@ -57,19 +63,10 @@ void loop() {
   lcd.print("Distancia: "); // Escrevendo a distância da parede no LCD
   lcd.print(distancia_parede); 
   
-
-  //TODO: detecta o cruzamento
   ehCruzamento = verificaCruzamento();
-
-  //TODO: verificar entorno
-  if (ehCruzamento) {
-    verificaEntorno();
-  }
   
 
   /* Caminho do robo livre, segue reto */
-
-
   //código do 3pi
 
   int16_t posicao = sensores_linha.readLineBlack(valores_sensores);
@@ -85,13 +82,11 @@ void loop() {
   velocidade_esq = constrain(velocidade_esq, velocidade_min, (int16_t)velocidade_max);
   velocidade_dir = constrain(velocidade_dir, velocidade_min, (int16_t)velocidade_max);
 
-  motors.setSpeeds(velocidade_esq, velocidade_dir);
+  motores.setSpeeds(velocidade_esq, velocidade_dir);
 }
 
 
 /*======================== FUNÇÕES AUXILIARES ========================*/
-
-
 long mede_distancia_su(int pino_trigger, int pino_echo) {
   /*===== HC­SR04 Ultrasonic Sensor =====*/
   /* Fazendo o sinal de trigger para o sensor antes da medição de fato */
@@ -132,7 +127,7 @@ void calibra_sensores(){
     }
     else
     {
-      motors.setSpeeds(velocidade_calibracao, -(int16_t)velocidade_calibracao);
+      motores.setSpeeds(velocidade_calibracao, -(int16_t)velocidade_calibracao);
     }
 
     sensores_linha.calibrate();
@@ -146,22 +141,73 @@ bool verificaCruzamento(){
   // lê sensor de cruzamento esquerdo 
   // se tiver detectando linha preta, então é cruzamento
 
+  // Check for left and right exits.
+  if(valores_sensores[0] > 100) found_left = 1;
+  if(valores_sensores[4] > 100) found_right = 1;
+
+  // Drive straight a bit more - this is enough to line up our
+  // wheels with the intersection.
+  motores.setSpeeds(40,40);
+  delay(200);
+
+  // Check for a straight exit.
+  int16_t posicao = sensores_linha.readLineBlack(valores_sensores);
+
+  if(valores_sensores[1] > 200 || valores_sensores[2] > 200 || valores_sensores[3] > 200) {
+    found_straight = 1;
+  }
+
+  // Check for the ending spot.
+  // If all three middle sensors are on dark black, we have
+  // solved the maze.
+  if(valores_sensores[1] > 600 && valores_sensores[2] > 600 && valores_sensores[3] > 600) {
+    exit(0);
+  }
+
+  // Intersection identification is complete.
+  // If the maze has been solved, we can follow the existing
+  // path. Otherwise, we need to learn the solution.
+  unsigned char dir = select_turn(found_left, found_straight, found_right);
+  // Make the turn indicated by the path.
+  turn(dir);
 }
 
-void verificaEntorno(){
-  // Vira o robo para a esquerda 90° (lado esquerdo)
-  // Mede de novo
-  // Se distancia < 5, então bloqueado
-  // Senão, segue nessa direção
-  
-  // Vira o robo para a direita 90° (frente)
-  // Mede de novo
-  // Se distancia < 5, então bloqueado
-  // Senão, segue nessa direção
 
-  // Vira o robo para a direita 90° (lado direito)
-  // Mede de novo
-  // Se distancia < 5, então bloqueado
-  // Senão, segue nessa direção
 
+// This function decides which way to turn during the learning phase of
+// maze solving. It uses the variables found_left, found_straight, and
+// found_right, which indicate whether there is an exit in each of the
+// three directions, applying the "left hand on the wall" strategy.
+char select_turn(unsigned char found_left, unsigned char found_straight, unsigned char found_right) {
+  // Make a decision about how to turn. The following code
+  // implements a left-hand-on-the-wall strategy, where we always
+  // turn as far to the left as possible.
+  if      (found_left)     return 'L';
+  else if (found_straight) return 'S';
+  else if (found_right)    return 'R';
+  else                     return 'B';
+}
+
+
+void turn(char dir) {
+  switch(dir) {
+    case 'L':
+      // Turn left.
+      setSpeed(-80,80);
+      delay(200);
+      break;
+    case 'R':
+      // Turn right.
+      setSpeed(80,-80);
+      delay(200);
+      break;
+    case 'B':
+      // Turn around.
+      setSpeed(80,-80);
+      delay(400);
+      break;
+    case 'S':
+      // Don't do anything!
+      break;
+  }
 }
