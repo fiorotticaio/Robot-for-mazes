@@ -17,6 +17,10 @@ using namespace Pololu3piPlus32U4;
 /*======================== Variáveis ========================*/
 
 /*===== Variáveis globais =====*/
+/* Sensor ultrasson */
+long distancia_anterior = 0; // Distância anterior medida pelo sensor ultrassom
+
+
 int colunas_lcd = 16; // Número de colunas do display LCD
 int linhas_lcd = 2; // Número de linhas do display LCD
 int endereco_lcd = 0x27; // Endereço do display LCD
@@ -98,17 +102,18 @@ long mede_distancia_su(int pino_trigger, int pino_echo) {
 
   long duracao = pulseIn(pino_echo, HIGH); // Medindo a duração do pulso
 
-  /* Converter o tempo em distância */
-  long distancia = microssegundos_para_cm(duracao);
+  long distancia = microssegundos_para_cm(duracao); // Converter o tempo em distância
 
-  //TODO: adiciona filtragem
+  /* Filtragem com média móvel */
+  distancia = (distancia + distancia_anterior) / 2;
+  distancia_anterior = distancia;
+
   return distancia;
 }
 
 long microssegundos_para_cm(long microssegundos) {
   // velocidade do som: 334 m/s 
   // 343 m/s == 0.0343 cm/uS = 1/29.1 cm/uS
-
   // (tempo_viagem / 2) * velocidade do som = distancia
   return microssegundos/2 / 29 ;
 }
