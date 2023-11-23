@@ -15,15 +15,7 @@ using namespace Pololu3piPlus32U4;
 
 
 /*======================== Variáveis ========================*/
-
-/*===== Variáveis globais =====*/
-/* Sensor ultrasson */
-long distancia_anterior = 0; // Distância anterior medida pelo sensor ultrassom
-
-
-int colunas_lcd = 16; // Número de colunas do display LCD
-int linhas_lcd = 2; // Número de linhas do display LCD
-int endereco_lcd = 0x27; // Endereço do display LCD
+/*===== Segue a linha =====*/
 unsigned int valores_sensores[NUM_SENSORS];
 LiquidCrystal_I2C lcd(0x27, lcd_colunas, lcd_linhas); // Inicializando o display LCD
 Buzzer buzzer;
@@ -33,16 +25,25 @@ ButtonA botao_a;
 ButtonB botao_b;
 ButtonC botao_c;
 int16_t ultimo_erro = 0;
-uint16_t velocidade_max = 200;                   // Velocidade máxima dos motores
-int16_t velocidade_min  = 0;                     // Velocidade mínima dos motores
-uint16_t velocidade_base = velocidade_max;       // Velocidade base dos motores quando o robô está centralizado na linha. Deixar em 0 para testar sem velocidade base.
-uint16_t velocidade_calibracao = 60;             // Velocidade dos motores durante a calibração.
-uint16_t coef_proporcional = 64;                 // Coeficiente do termo proporcional
-uint16_t coef_derivativo = 256;                  // Coeficiente do termo derivativo
+uint16_t velocidade_max = 200;             // Velocidade máxima dos motores
+int16_t velocidade_min  = 0;               // Velocidade mínima dos motores
+uint16_t velocidade_base = velocidade_max; // Velocidade base dos motores quando o robô está centralizado na linha. Deixar em 0 para testar sem velocidade base.
+uint16_t velocidade_calibracao = 60;       // Velocidade dos motores durante a calibração.
+uint16_t coef_proporcional = 64;           // Coeficiente do termo proporcional
+uint16_t coef_derivativo = 256;            // Coeficiente do termo derivativo
 
+/*===== Realizar cruzamentos =====*/
 unsigned char found_left = '\0';
 unsigned char found_right = '\0';
 unsigned char found_straight = '\0';
+
+/*===== Sensor ultrasson =====*/
+long distancia_anterior = 0; // Distância anterior medida pelo sensor ultrassom
+
+/*===== LCD =====*/
+int colunas_lcd = 16; // Número de colunas do display LCD
+int linhas_lcd = 2; // Número de linhas do display LCD
+int endereco_lcd = 0x27; // Endereço do display LCD
 
 
 
