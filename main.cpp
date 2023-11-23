@@ -9,9 +9,8 @@ using namespace Pololu3piPlus32U4;
 /*======================== CONSTANTES ========================*/
 #define PINO_TRIGGER_SU 7 // Trigger sensor ultrassom
 #define PINO_ECHO_SU 8 // Echo sensor ultrassom
+
 #define NUM_SENSORS 5 // Número de sensores do robô (mudar se for 3)
-#define HIGH 1
-#define LOW 0
 
 
 /*======================== Variáveis ========================*/
