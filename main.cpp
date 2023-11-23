@@ -1,5 +1,4 @@
 /*======================== IMPORTAÇÕES ========================*/
-#include <LiquidCrystal_I2C.h>
 #include <Pololu3piPlus32U4.h>
 #include <PololuMenu.h>
 
@@ -16,7 +15,6 @@ using namespace Pololu3piPlus32U4;
 /*======================== Variáveis ========================*/
 /*===== Segue a linha =====*/
 unsigned int valores_sensores[NUM_SENSORS];
-LiquidCrystal_I2C lcd(0x27, lcd_colunas, lcd_linhas); // Inicializando o display LCD
 Buzzer buzzer;
 LineSensors sensores_linha;
 Motors motores;
@@ -53,19 +51,12 @@ void setup() {
   pinMode(PINO_TRIGGER_SU, OUTPUT);
   pinMode(PINO_ECHO_SU, INPUT);
 
-  lcd.init(); // Inicializando o display LCD
-  lcd.backlight(); // Acendendo o backlight do display LCD
-
   while(!botao_b.getSingleDebouncedPress()); // Esperando o botão B ser pressionado para começar a calibração
   calibra_sensores(); 
 }
 
 void loop() {
   long distancia_parede = mede_distancia_su(PINO_TRIGGER_SU, PINO_ECHO_SU);
-
-  lcd.setCursor(0, 0); // Posicionando o cursor do LCD na primeira coluna, primeira linha
-  lcd.print("Distancia: "); // Escrevendo a distância da parede no LCD
-  lcd.print(distancia_parede); 
   
   ehCruzamento = verificaCruzamento();
   
