@@ -18,8 +18,8 @@
 ## Implementações
 - [ ] Segue a linha (Controle proporcional) 
 - [ ] Realizar cruzamentos (90 direita, esquerda e 180 graus) 
-- [ ] Ler distância de obstáculos com o ultrasom e realizar filtragem - Sugestão, média móvel! 
-- [ ] Visualizar parâmetros do Robô no LCD (Distância do Ultrassom, sensores de linha, e estado da bateria) 
+- [x] Ler distância de obstáculos com o ultrasom e realizar filtragem - Sugestão, média móvel! 
+- [x] Visualizar parâmetros do Robô no LCD (Distância do Ultrassom, sensores de linha, e estado da bateria) 
 - [ ] Visualizar todos os sensores do Robô em dasboard Grafana ou similar
 - [ ] Sair do labirinto
 
