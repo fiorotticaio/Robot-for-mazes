@@ -2,13 +2,13 @@
 #include <Pololu3piPlus32U4.h>
 #include <PololuMenu.h>
 
+#include "bibliotecas/lcd/lcd.h"
+#include "bibliotecas/sensor_ultrasson/sensor_ultrasson.h"
+
 using namespace Pololu3piPlus32U4;
 
 
 /*======================== CONSTANTES ========================*/
-#define PINO_TRIGGER_SU 7 // Trigger sensor ultrassom
-#define PINO_ECHO_SU 8 // Echo sensor ultrassom
-
 #define NUM_SENSORS 5 // Número de sensores do robô (mudar se for 3)
 
 
@@ -34,17 +34,10 @@ unsigned char found_left = '\0';
 unsigned char found_right = '\0';
 unsigned char found_straight = '\0';
 
-/*===== Sensor ultrasson =====*/
-long distancia_anterior = 0; // Distância anterior medida pelo sensor ultrassom
 
-/*===== LCD =====*/
-#define RS 13
-#define EN 12
-#define DB7 11
-#define DB6 10
-#define DB5 9 
-#define DB4 8
-#define RL_LCD 7
+/*===== Sensor ultrasson =====*/
+long distancia_parede = 0; // Distância anterior medida pelo sensor ultrassom
+
 
 
 
@@ -60,7 +53,7 @@ void setup() {
 }
 
 void loop() {
-  long distancia_parede = mede_distancia_su(PINO_TRIGGER_SU, PINO_ECHO_SU);
+  long distancia_parede = mede_distancia_su(PINO_TRIGGER_SU, PINO_ECHO_SU, distancia_parede);
   
   ehCruzamento = verificaCruzamento();
   
@@ -86,32 +79,6 @@ void loop() {
 
 
 /*======================== FUNÇÕES AUXILIARES ========================*/
-long mede_distancia_su(int pino_trigger, int pino_echo) {
-  /*===== HC­SR04 Ultrasonic Sensor =====*/
-  /* Fazendo o sinal de trigger para o sensor antes da medição de fato */
-  digitalWrite(pino_trigger, LOW);
-  delayMicroseconds(2);
-  digitalWrite(pino_trigger, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(pino_trigger, LOW);
-
-  long duracao = pulseIn(pino_echo, HIGH); // Medindo a duração do pulso
-
-  long distancia = microssegundos_para_cm(duracao); // Converter o tempo em distância
-
-  /* Filtragem com média móvel */
-  distancia = (distancia + distancia_anterior) / 2;
-  distancia_anterior = distancia;
-
-  return distancia;
-}
-
-long microssegundos_para_cm(long microssegundos) {
-  // velocidade do som: 334 m/s 
-  // 343 m/s == 0.0343 cm/uS = 1/29.1 cm/uS
-  // (tempo_viagem / 2) * velocidade do som = distancia
-  return microssegundos/2 / 29 ;
-}
 
 void calibra_sensores(){
   //TODO: implementar display
@@ -209,95 +176,5 @@ void turn(char dir) {
     case 'S':
       // Don't do anything!
       break;
-  }
-}
-
-
-void lcd_init() {
-  /* Configurando os pinos do display */
-  pinMode(RS, OUTPUT); 
-  pinMode(EN, OUTPUT); 
-  pinMode(RL_LCD, OUTPUT); 
-  digitalWrite(RL_LCD, HIGH);
-
-  /* Configurando os pinos da comunicação 4-bit */
-  pinMode(DB4, OUTPUT);
-  pinMode(DB5, OUTPUT);
-  pinMode(DB6, OUTPUT);
-  pinMode(DB7, OUTPUT);
-
-  delay(20); // Inicialização do LCD
-
-  lcd_command(0x02);	// modo 4 bits
-  lcd_command(0x28);	// Inicialização do display
-  lcd_command(0x0C);	// Display ON Cursor OFF
-  lcd_command(0x06);	// Cursor com auto-incremento 
-  lcd_command(0x01);	// Limpa o display
-  lcd_command(0x80);	// Cursos na posição inicial
-}
-
-void lcd_command(byte command) {
-  digitalWrite(RS, LOW);
-  digitalWrite(DB4, (command >> 4) & 0x01);
-  digitalWrite(DB5, ((command >> 4) >> 1) & 0x01);
-  digitalWrite(DB6, ((command >> 4) >> 2) & 0x01);
-  digitalWrite(DB7, ((command >> 4) >> 3) & 0x01);
-
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-
-  digitalWrite(DB4, command & 0x01);
-  digitalWrite(DB5, (command >> 1) & 0x01);
-  digitalWrite(DB6, (command >> 2) & 0x01);
-  digitalWrite(DB7, (command >> 3) & 0x01);
-
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-}
-
-void lcd_print_char(char c) {
-  digitalWrite(RS, HIGH);
-
-  digitalWrite(DB4, (c >> 4) & 0x01);
-  digitalWrite(DB5, ((c >> 4) >> 1) & 0x01);
-  digitalWrite(DB6, ((c >> 4) >> 2) & 0x01);
-  digitalWrite(DB7, ((c >> 4) >> 3) & 0x01);
-
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-
-  digitalWrite(DB4, c & 0x01);
-  digitalWrite(DB5, (c >> 1) & 0x01);
-  digitalWrite(DB6, (c >> 2) & 0x01);
-  digitalWrite(DB7, (c >> 3) & 0x01);
-  
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-}
-
-void lcd_print(char *s) {
-  char c;
-  while((c = *s++)) {
-    lcd_print_char(c);
   }
 }
