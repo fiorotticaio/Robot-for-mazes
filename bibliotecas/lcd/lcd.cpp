@@ -1,90 +1,83 @@
 #include "bibliotecas/lcd/lcd.h"
 
-void lcd_init() {
-  /* Configurando os pinos do display */
-  pinMode(RS, OUTPUT); 
-  pinMode(EN, OUTPUT); 
-  pinMode(RL_LCD, OUTPUT); 
-  digitalWrite(RL_LCD, HIGH);
-
-  /* Configurando os pinos da comunicação 4-bit */
-  pinMode(DB4, OUTPUT);
-  pinMode(DB5, OUTPUT);
-  pinMode(DB6, OUTPUT);
-  pinMode(DB7, OUTPUT);
-
-  delay(20); // Inicialização do LCD
-
-  lcd_command(0x02);	// modo 4 bits
-  lcd_command(0x28);	// Inicialização do display
-  lcd_command(0x0C);	// Display ON Cursor OFF
-  lcd_command(0x06);	// Cursor com auto-incremento 
-  lcd_command(0x01);	// Limpa o display
-  lcd_command(0x80);	// Cursos na posição inicial
-}
-
-void lcd_command(byte command) {
-  digitalWrite(RS, LOW);
-  digitalWrite(DB4, (command >> 4) & 0x01);
-  digitalWrite(DB5, ((command >> 4) >> 1) & 0x01);
-  digitalWrite(DB6, ((command >> 4) >> 2) & 0x01);
-  digitalWrite(DB7, ((command >> 4) >> 3) & 0x01);
-
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
+void pulseEnable(){
+  // Certificando-se de que o pino está BAIXO inicialmente
+  digitalWrite(E, LOW);
   delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-
-  digitalWrite(DB4, command & 0x01);
-  digitalWrite(DB5, (command >> 1) & 0x01);
-  digitalWrite(DB6, (command >> 2) & 0x01);
-  digitalWrite(DB7, (command >> 3) & 0x01);
-
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-}
-
-void lcd_print_char(char c) {
-  digitalWrite(RS, HIGH);
-
-  digitalWrite(DB4, (c >> 4) & 0x01);
-  digitalWrite(DB5, ((c >> 4) >> 1) & 0x01);
-  digitalWrite(DB6, ((c >> 4) >> 2) & 0x01);
-  digitalWrite(DB7, ((c >> 4) >> 3) & 0x01);
-
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
-  delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
-  delayMicroseconds(100);
-
-  digitalWrite(DB4, c & 0x01);
-  digitalWrite(DB5, (c >> 1) & 0x01);
-  digitalWrite(DB6, (c >> 2) & 0x01);
-  digitalWrite(DB7, (c >> 3) & 0x01);
   
-  /* Pulse enable */
-  digitalWrite(EN, LOW);
+  // Pulsando o pino de Habilitação (Enable)
+  digitalWrite(E, HIGH);
   delayMicroseconds(1);
-  digitalWrite(EN, HIGH);
-  delayMicroseconds(1);
-  digitalWrite(EN, LOW);
+  digitalWrite(E, LOW);
   delayMicroseconds(100);
 }
 
-void lcd_print(char *s) {
+/* ------------------------------------------------------
+	Inicializa o display conforme a Figura 24 do datasheet 
+    HD44780U
+*/
+void initLCD(){
+  // Aguardando inicialmente
+  delay(40);
+  
+  //Serial.println("Função set 4 bits 0b0010.");
+  digitalWrite(RS, LOW);
+  
+  // Define a função de interface com 4 bits
+  write4bits(FUNCTION_SET >> 4);
+  delayMicroseconds(4500); // Um pouco mais que 4,1 ms
+  
+  // Agora, configuramos:
+  // - Número de linhas no display (2 linhas: 16x2)
+  // - Tamanho da matriz de pixels (5x8)
+  // RS permanece 0 (apenas é 1 ao escrever)
+  //Serial.println("Função set 4 bits 0b0010 1000.");
+  write8bits(FUNCTION_SET | DISPLAY_FUNCTION);
+  
+  // Desliga o display
+  //Serial.println("Controle ON/OFF do Display 0b0000 1100.");
+  write8bits(DISPLAY_CONTROL); 
+  
+  // Define o modo de entrada
+  //Serial.println("Modo de entrada setado 0b0000 0110.");
+  write8bits(ENTRY_MODE_SET); 
+  
+  // Limpa e retorna à posição inicial
+  write8bits(CLEAR_DISPLAY);
+  write8bits(RETURN_HOME);
+  delay(2); // Necessário um atraso de 1,52ms para o comando Return Home
+  
+  // Agora você está livre para usar o display
+}
+
+/* ------------------------------------------------------
+	Envia de fato os comandos para o display
+*/
+void write4bits(int valor) {
+  for(int i = 0; i < 4; i++) {
+    // Somente o valor correspondente ao bit de interesse
+    digitalWrite(DATA[i], (valor>>(3-i)) & 0x1);
+  }
+  pulseEnable();
+}
+
+/* ------------------------------------------------------
+	Escreve metade dos dados primeiro, depois a segunda metade
+*/
+void write8bits(int valor) {
+  // Envia a primeira metade dos dados (parte superior):
+  write4bits(valor>>4);
+  // Envia a última metade dos dados (parte inferior):
+  write4bits(valor);
+}
+
+void writeData(const char* valor) {
   char c;
-  while((c = *s++)) {
-    lcd_print_char(c);
+  for (int i = 0; i < strlen(valor); i++) {
+    c = valor[i];
+    
+    digitalWrite(RS, HIGH);
+    write8bits(c);
+    digitalWrite(RS, LOW);
   }
 }

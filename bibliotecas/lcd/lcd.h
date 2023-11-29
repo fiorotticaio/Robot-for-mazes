@@ -3,15 +3,26 @@
 
 #define RS 13
 #define EN 12
-#define DB7 11
-#define DB6 10
-#define DB5 9 
-#define DB4 8
+#define DATA[] = {};
 #define RL_LCD 7
 
-void lcd_init();
-void lcd_command(byte command);
-void lcd_print_char(char c);
-void lcd_print(char *s);
+/* Funções */
+#define FUNCTION_SET 0x20 // 0010 0000 - 4 bits
+#define DISPLAY_CONTROL 0x0C // 0000 1100
+#define CLEAR_DISPLAY 0x01 // 0000 0001
+#define RETURN_HOME 0x02 // 0000 0010
+#define ENTRY_MODE_SET 0x06 // 0000 0110
 
-#endif LCD_H
+/* Estados */
+#define LCD_DISPLAYON 0x04
+#define LCD_DISPLAYOFF 0x00
+#define DISPLAY_FUNCTION 0x08
+
+
+void pulseEnable();
+void initLCD();
+void write4bits(int value);
+void write8bits(int value);
+void writeData(char* value);
+
+#endif // LCD_H
