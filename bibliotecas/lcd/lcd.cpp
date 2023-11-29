@@ -71,7 +71,7 @@ void write8bits(int valor) {
   write4bits(valor);
 }
 
-void writeData(const char* valor) {
+void writeData(char* valor) {
   char c;
   for (int i = 0; i < strlen(valor); i++) {
     c = valor[i];

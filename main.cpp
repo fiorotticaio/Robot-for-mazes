@@ -2,6 +2,7 @@
 #include "bibliotecas/lcd/lcd.h"
 #include "bibliotecas/sensor_ultrasson/sensor_ultrasson.h"
 #include "bibliotecas/motor/motor.h"
+#include "bibliotecas/servo/servo.h"
 
 
 
@@ -10,8 +11,8 @@
 
 
 /*======================== Variáveis ========================*/
-/*===== Sensor ultrasson =====*/
 long distancia_parede = 0; // Distância anterior medida pelo sensor ultrassom
+char distancia_parede_lcd[16];
 
 
 
@@ -41,7 +42,28 @@ void loop() {
   long distancia_parede = mede_distancia_su(PINO_TRIGGER_SU, PINO_ECHO_SU, distancia_parede);
 
   // Escrevendo a distância do ultrassom no display
-  char distancia[16];
-  sprintf(distancia, "%d", distancia_parede);
-  writeData(distancia);
+  sprintf(distancia_parede_lcd, "%d", distancia_parede);
+  writeData(distancia_parede_lcd);
+
+  /* Dependendo da quantidade de casas decimais, tem que voltar mais o cursor */
+  if (i < 10) {
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    
+  } else if (i < 100) {
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+  
+  } else {
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+  }
+
+  delay(500); // Só para testes
 }
