@@ -3,6 +3,7 @@
 #include "bibliotecas/sensor_ultrasson/sensor_ultrasson.h"
 #include "bibliotecas/motor/motor.h"
 #include "bibliotecas/servo/servo.h"
+#include "bibliotecas/sensor_infra/sensor_infra.h"
 
 
 
@@ -29,6 +30,11 @@ void setup() {
   for(int i = 0; i < 4; i++) {
     pinMode(DATA[i], OUTPUT);
   }
+  pinMode(PINO_SL, INPUT);
+  pinMode(PINO_SC, INPUT);
+  pinMode(PINO_SR, INPUT);
+  pinMode(PINO_SLC, INPUT);
+  pinMode(PINO_SRC, INPUT);
 
   /* Inicialização do LCD */
   lcd_init();
@@ -64,6 +70,43 @@ void loop() {
     write8bits(MOVE_CURSOR_LEFT);
     delay(2);
   }
+
+
+
+
+  /* Lendo os sensores infra vermelho */
+  int sl = digitalRead(PINO_SL);
+  int sc = digitalRead(PINO_SC);
+  int sr = digitalRead(PINO_SR);
+  int slc = digitalRead(PINO_SLC);
+  int src = digitalRead(PINO_SRC);
+  // Pino analógico de cada um deles?
+
+  /* Seguir linha */
+  if (srl == 1 && src == 1) {
+    frente();
+  } else if (srl == 0 && src == 1) {
+    esquerda();
+  } else if (srl == 1 && src == 0) {
+    direita();
+  } else if (srl == 0 && src == 0) {
+    parar();
+  }
+
+  /* Verifica cruzamento */
+  if (sc == 1 && sl == 1 && sr == 1) {
+    // É cruzamento
+  }
+
+  
+
+
+
+
+
+
+
+
 
   delay(500); // Só para testes
 }
