@@ -84,13 +84,13 @@ void loop() {
 
   /* Seguir linha */
   if (srl == 1 && src == 1) {
-    frente();
+    // Frente
   } else if (srl == 0 && src == 1) {
-    esquerda();
+    // Esquerda
   } else if (srl == 1 && src == 0) {
-    direita();
+    // Direita
   } else if (srl == 0 && src == 0) {
-    parar();
+    // Para
   }
 
   /* Verifica cruzamento */
