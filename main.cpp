@@ -75,11 +75,11 @@ void loop() {
 
 
   /* Lendo os sensores infra vermelho */
-  int sl = digitalRead(PINO_SL);
-  int sc = digitalRead(PINO_SC);
-  int sr = digitalRead(PINO_SR);
-  int slc = digitalRead(PINO_SLC);
-  int src = digitalRead(PINO_SRC);
+  int sl = analogRead(PINO_SL);
+  int sc = analogRead(PINO_SC);
+  int sr = analogRead(PINO_SR);
+  int slc = analogRead(PINO_SLC);
+  int src = analogRead(PINO_SRC);
   // Pino analógico de cada um deles?
 
   /* Seguir linha */
