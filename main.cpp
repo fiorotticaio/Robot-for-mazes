@@ -14,8 +14,12 @@
 /*======================== Variáveis ========================*/
 long distancia_parede = 0; // Distância anterior medida pelo sensor ultrassom
 char distancia_parede_lcd[16];
+int esta_virando = 0;         // 1 está virando, 0 não está virando
+int direcao_esta_virando = 1; // 1 direita, 0 esquerda
 
-
+int achou_linha_virando = 0;  //  0: ainda nao achou a linha
+                              //  1: achou a linha, está quase terminando de virar
+                              // -1: terminou de virar
 
 
 /*======================== PROGRAMA PRINCIPAL ========================*/
@@ -72,41 +76,56 @@ void loop() {
   }
 
 
-
-
   /* Lendo os sensores infra vermelho */
-  int sl = analogRead(PINO_SL);
+  int sl = analogRead(PINO_SL); 
   int sc = analogRead(PINO_SC);
   int sr = analogRead(PINO_SR);
   int slc = analogRead(PINO_SLC);
   int src = analogRead(PINO_SRC);
-  // Pino analógico de cada um deles?
+  // Pino analógico de cada um deles? acho q sim
 
-  /* Seguir linha */
-  if (srl == 1 && src == 1) {
-    // Frente
-  } else if (srl == 0 && src == 1) {
-    // Esquerda
-  } else if (srl == 1 && src == 0) {
-    // Direita
-  } else if (srl == 0 && src == 0) {
-    // Para
+  // Maior que 0: lendo linha
+  // Igual a 0: lendo branco
+
+  // caso não esteja virando, apenas siga a linha
+  if (!esta_virando) {
+
+    /* Verifica cruzamento */
+    if (sc > 0 && sl > 0 && sr > 0) {
+      // TODO: talvez aqui deve ter que adicionar um delay para o robo nao ficar virando varias vezes sem parar
+      esta_virando = 1;
+    }
+    
+    /* Seguir linha */
+    if (srl == 0 && src == 0) {
+      anda_pra_frente();
+    } else if (srl > 0 && src == 0) {
+      // Esquerda
+    } else if (srl == 0 && src > 0) {
+      // Direita
+    }
+    
+  // caso esteja virando, então continue virando até terminar
+  } else {
+    
+    // virando para esquerda
+    if (direcao == 0) {
+      achou_linha_virando = vira_pra_esquerda(srl, src, achou_linha_virando);
+      
+      // terminou de virar
+      if (achou_linha_virando==-1){
+        esta_virando = 0;
+      }
+
+    }
+    
+    // virando para a direita
+    else if (direcao == 1) {
+      // vira_pra_direita (tem que implementar)
+    }
   }
 
-  /* Verifica cruzamento */
-  if (sc == 1 && sl == 1 && sr == 1) {
-    // É cruzamento
-  }
 
-  
-
-
-
-
-
-
-
-
-
+  // TODO:
   delay(500); // Só para testes
 }

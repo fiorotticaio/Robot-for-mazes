@@ -44,10 +44,29 @@ void freia_ate_parar() {
 }
 
 // Função que vira o carrinho para esquerda, usando sensores
-void vira_pra_esquerda(){
-  // TODO: precisa adicionar dinamica com sensores
-  ledcWrite(PWM1_CH, 50);
-  ledcWrite(PWM2_CH, 200);
+int vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha){
+
+  // setando enable nos motores
+  liga_motores();
+  int achou_linha_update = achouLinha;
+
+  // Verificando se o sensor da esquerda achou a linha (significa que deve continuar a virar mas ta quase chegando)
+  if (sensorInfraLeft>0) {
+    achou_linha_update = 1;  
+  }
+
+  // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
+  if (sensorInfraCenter>0){
+    achou_linha_update = -1;
+  }
+
+  // Continuar virando para esquerda
+  if (achou_linha_update>0){
+    ledcWrite(PWM1_CH, 50);
+    ledcWrite(PWM2_CH, 200);
+  }
+
+  return achou_linha_update;
 }
 
 // Função que vira  o carrinho para direita, usando sensores

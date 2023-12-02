@@ -10,4 +10,11 @@
 #define PWM1_FREQ 1000  // 1 kHz
 #define PWM1_RES 8      // 8 bits
 
+void init_motores_dc() ;
+void liga_motores();
+void desliga_motores();
+void anda_pra_frente();
+void freia_ate_parar() ;
+void vira_pra_direita();
+
 #endif
