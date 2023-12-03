@@ -15,6 +15,8 @@ void liga_motores();
 void desliga_motores();
 void anda_pra_frente();
 void freia_ate_parar() ;
-void vira_pra_direita();
-
+void vira(char direcao);
+int vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha);
+int vira_pra_direita(int sensorInfraRight, int sensorInfraCenter, int achouLinha);
+int vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfraCenter, int achouLinha);
 #endif

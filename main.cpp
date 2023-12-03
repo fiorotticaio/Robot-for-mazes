@@ -15,12 +15,18 @@
 long distancia_parede = 0; // Distância anterior medida pelo sensor ultrassom
 char distancia_parede_lcd[16];
 int esta_virando = 0;         // 1 está virando, 0 não está virando
-int direcao_esta_virando = 1; // 1 direita, 0 esquerda
+int direcao_esta_virando = 1; // 1 direita, 0 esquerda, -1 trás
 
 int achou_linha_virando = 0;  //  0: ainda nao achou a linha
                               //  1: achou a linha, está quase terminando de virar
                               // -1: terminou de virar
 
+float kp = 0.1;               // constante proporcional
+                              //FIXME: achar um valor bom para kp e kd
+float kd = 0.05;              // constante derivativa
+
+float ultimo_erro = 0;        // erro anterior (apenas para termo derivativo)
+float erro = 0;               // erro atual
 
 /*======================== PROGRAMA PRINCIPAL ========================*/
 void setup() {
@@ -83,7 +89,8 @@ void loop() {
   int slc = analogRead(PINO_SLC);
   int src = analogRead(PINO_SRC);
   // Pino analógico de cada um deles? acho q sim
-
+  
+  //FIXME: adicionar um threshold se pa
   // Maior que 0: lendo linha
   // Igual a 0: lendo branco
 
@@ -94,23 +101,47 @@ void loop() {
     if (sc > 0 && sl > 0 && sr > 0) {
       // TODO: talvez aqui deve ter que adicionar um delay para o robo nao ficar virando varias vezes sem parar
       esta_virando = 1;
+      if(slc > 0 && src > 0) {
+        // cruzamento em T
+        direcao_esta_virando = 0;   //sempre vira para esquerda
+      } else if (slc > 0) {
+        direcao_esta_virando = 0;
+      } else if (src > 0) {
+        direcao_esta_virando = 1;
+      } else {
+        direcao_esta_virando = 0;   //sempre vira para esquerda
+      }
     }
     
     /* Seguir linha */
-    if (srl == 0 && src == 0) {
+    if (slc == 0 && src == 0) {
       anda_pra_frente();
-    } else if (srl > 0 && src == 0) {
-      // Esquerda
-    } else if (srl == 0 && src > 0) {
-      // Direita
+    } else if (slc > 0 && src == 0 || slc == 0 && src > 0) {
+      // Virar a direita com controle proporcional
+      erro = medir_erro(slc, sc, src);
+      float controle = kp*erro + kd*(erro - ultimo_erro);
+      int velocidadeEsq = 127 + controle;
+      int velocidadeDir = 127 - controle;
+      
+      ultimo_erro = erro;
+
+      ledcWrite(PWM1_CH, velocidadeEsq);
+      ledcWrite(PWM2_CH, velocidadeDir);
+
+    } else if (slc > 0 && src > 0) {
+      // ??????
+      Serial.println("cruzamento chegando");
+    } else if(sl == 0 && sc == 0 && sr == 0 && slc == 0 && src == 0) {
+      //caminho sem saida
+      esta_virando = 1;
+      direcao_esta_virando = -1;
     }
-    
   // caso esteja virando, então continue virando até terminar
   } else {
     
     // virando para esquerda
-    if (direcao == 0) {
-      achou_linha_virando = vira_pra_esquerda(srl, src, achou_linha_virando);
+    if (direcao_esta_virando == 0) {
+      achou_linha_virando = vira_pra_esquerda(sl, sc, achou_linha_virando);
       
       // terminou de virar
       if (achou_linha_virando==-1){
@@ -120,12 +151,33 @@ void loop() {
     }
     
     // virando para a direita
-    else if (direcao == 1) {
-      // vira_pra_direita (tem que implementar)
+    else if (direcao_esta_virando == 1) {
+      achou_linha_virando = vira_pra_direita(sr, sc, achou_linha_virando);
+      
+      // terminou de virar
+      if (achou_linha_virando==-1){
+        esta_virando = 0;
+      }
+    }
+
+    // virando para trás
+    else if (direcao_esta_virando == -1) {
+      achou_linha_virando = vira_180_graus(sl, sr, sc, achou_linha_virando);
+      
+      // terminou de virar
+      if (achou_linha_virando==-1){
+        esta_virando = 0;
+      }
     }
   }
 
 
   // TODO:
   delay(500); // Só para testes
+}
+
+/*======================== FUNÇÕES ========================*/
+
+float medir_erro(int slc, int sc, int src) {
+  return sc - (slc + src)/2;    
 }

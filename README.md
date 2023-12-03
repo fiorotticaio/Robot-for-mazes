@@ -16,10 +16,10 @@
 - Nome dos **arquivos** devem ser escritos em **snake_case**
 
 ## Implementações
-- [ ] Segue a linha (Controle proporcional)
+- [?] Segue a linha (Controle proporcional)
     - Dois sensores infrevermelho da frente, dependendo do valor da leitura de cada um, ativa mais ou menos os motores DC das 
       rodas da direita e esquerda
-- [ ] Realizar cruzamentos (90 direita, esquerda e 180 graus) 
+- [x] Realizar cruzamentos (90 direita, esquerda e 180 graus) 
     - Ao detectar um cruzamento (os outros 3 sensores infea-vermelho lerem preto), deve-se girar 90 graus para a esquerda
       e ir vendo se não tem parede na frente com o ultrassom, se não tiver parade na frente segue reto, se tiver vira de novo
       90 graus para a esquerda ate poder ir reto

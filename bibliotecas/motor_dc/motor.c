@@ -43,6 +43,35 @@ void freia_ate_parar() {
   ledcWrite(PWM2_CH, 50);
 }
 
+// Função que vira o carrinho para esquerda, direita ou 180 graus
+void vira(char direcao){
+  //0 - 127 = trás
+  //128 - 255 = frente
+  switch(direcao){
+    case 'L':
+        // vira para esquerda
+        ledcWrite(PWM1_CH, 54);
+        ledcWrite(PWM2_CH, 200);
+        delay(200);
+        break;
+    case 'R':
+        // virar para direita
+        ledcWrite(PWM1_CH, 200);
+        ledcWrite(PWM2_CH, 54);
+        delay(200);
+        break;
+    case 'B':
+        // vira 180 graus
+        ledcWrite(PWM1_CH, 54);
+        ledcWrite(PWM2_CH, 200);
+        delay(400);
+        break;
+    case 'S':
+        // faz nada
+        break;
+    }
+}
+
 // Função que vira o carrinho para esquerda, usando sensores
 int vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha){
 
@@ -62,16 +91,57 @@ int vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha
 
   // Continuar virando para esquerda
   if (achou_linha_update>0){
-    ledcWrite(PWM1_CH, 50);
-    ledcWrite(PWM2_CH, 200);
+    virar('L');
   }
 
   return achou_linha_update;
 }
 
 // Função que vira  o carrinho para direita, usando sensores
-void vira_pra_direita(){
-  // TODO: precisa adicionar dinamica com sensores
-  ledcWrite(PWM1_CH, 50);
-  ledcWrite(PWM2_CH, 200);
+int vira_pra_direita(int sensorInfraRight, int sensorInfraCenter, int achouLinha){
+  
+  // setando enable nos motores
+  liga_motores();
+  int achou_linha_update = achouLinha;
+
+  // Verificando se o sensor da direita achou a linha (significa que deve continuar a virar mas ta quase chegando)
+  if (sensorInfraRight>0) {
+    achou_linha_update = 1;  
+  }
+
+  // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
+  if (sensorInfraCenter>0){
+    achou_linha_update = -1;
+  }
+
+  // Continuar virando para esquerda
+  if (achou_linha_update>0){
+    virar('R');
+  }
+
+  return achou_linha_update;
+}
+
+int vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfraCenter, int achouLinha){
+  
+  // setando enable nos motores
+  liga_motores();
+  int achou_linha_update = achouLinha;
+
+  // Verificando se o sensor da esquerda achou a linha (significa que deve continuar a virar mas ta quase chegando)
+  if (sensorInfraRight>0 || sensorInfraLeft>0) {
+    achou_linha_update = 1;  
+  }
+
+  // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
+  if (sensorInfraCenter>0){
+    achou_linha_update = -1;
+  }
+
+  // Continuar virando para esquerda
+  if (achou_linha_update>0){
+    virar('B');
+  }
+
+  return achou_linha_update;
 }
