@@ -27,3 +27,12 @@ long microssegundos_para_cm(long microssegundos) {
   // (tempo_viagem / 2) * velocidade do som = distancia
   return microssegundos/2 / 29 ;
 }
+
+
+// programa principal que tava fazendo
+  pinMode(PINO_TRIGGER_SU, OUTPUT);
+  pinMode(PINO_ECHO_SU, INPUT);
+
+
+  
+long distancia_parede = mede_distancia_su(PINO_TRIGGER_SU, PINO_ECHO_SU, distancia_parede);

@@ -81,3 +81,47 @@ void writeData(char* valor) {
     digitalWrite(RS, LOW);
   }
 }
+
+
+
+
+// programa principal que tava fazendo
+
+  pinMode(RS, OUTPUT);
+  pinMode(EN, OUTPUT);
+  for(int i = 0; i < 4; i++) {
+    pinMode(DATA[i], OUTPUT);
+  }
+  /* Inicialização do LCD */
+  lcd_init();
+  write8bits(CLEAR_DISPLAY);
+  write8bits(RETURN_HOME);
+  delay(2); // 1.52 ms de delay necessários para o comando de Return Home
+  writeData("Distancia us: ");
+
+
+
+
+  // Escrevendo a distância do ultrassom no display
+  sprintf(distancia_parede_lcd, "%d", distancia_parede);
+  writeData(distancia_parede_lcd);
+
+  /* Dependendo da quantidade de casas decimais, tem que voltar mais o cursor */
+  if (i < 10) {
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    
+  } else if (i < 100) {
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+  
+  } else {
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+    write8bits(MOVE_CURSOR_LEFT);
+    delay(2);
+  }
