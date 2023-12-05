@@ -26,6 +26,7 @@ void SI_init_sensor_infra();
 #define DIREITA 1
 #define ESQUERDA 0
 #define TRAS -1
+#define TEMPO_DE_VIRAR 900
 
 void MDC_init_motores_dc() ;
 void MDC_liga_motores();
@@ -72,11 +73,6 @@ void loop() {
   Serial.print(slc);
   Serial.print(" ");
   Serial.println(src);
-  // delay(500);
-  
-  // FIXME: adicionar um threshold se pa
-  // Maior que 0: lendo linha
-  // Igual a 0: lendo branco
 
 
   /* Caso não esteja virando, apenas siga a linha */
@@ -217,19 +213,19 @@ void MDC_vira(char direcao){
         // Vira para esquerda
         ledcWrite(MDC_PWM1_CH, 170);
         ledcWrite(MDC_PWM2_CH, 170);
-        delay(1000);
+        delay(TEMPO_DE_VIRAR);
         break;
     case 'R':
         // Virar para direita
         ledcWrite(MDC_PWM1_CH, 84);
         ledcWrite(MDC_PWM2_CH, 84);
-        delay(1000);
+        delay(TEMPO_DE_VIRAR);
         break;
     case 'B':
         // Vira 180 graus
         ledcWrite(MDC_PWM1_CH, 170);
         ledcWrite(MDC_PWM2_CH, 170);
-        delay(2000);
+        delay(2*TEMPO_DE_VIRAR);
         break;
     case 'S':
         // Faz nada
@@ -239,11 +235,10 @@ void MDC_vira(char direcao){
 
 /* Função que vira o robô para esquerda, usando sensores */
 int MDC_vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha){
-  Serial.print("entrou1");
 
   MDC_vira('L');
 
-  int achou_linha_update = achouLinha;
+  // int achou_linha_update = achouLinha;
 
   // // Verificando se o sensor da esquerda achou a linha (significa que deve continuar a virar mas ta quase chegando)
   // if (sensorInfraLeft > 100) {
@@ -266,50 +261,50 @@ int MDC_vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouL
 
 /* Função que vira  o robô para direita, usando sensores */
 int MDC_vira_pra_direita(int sensorInfraRight, int sensorInfraCenter, int achouLinha){
-  Serial.print("entrou2");
-  // setando enable nos motores
-  MDC_liga_motores();
-  int achou_linha_update = achouLinha;
+  
+  MDC_vira('R');
+
+  // int achou_linha_update = achouLinha;
 
   // Verificando se o sensor da direita achou a linha (significa que deve continuar a virar mas ta quase chegando)
-  if (sensorInfraRight > 100) {
-    achou_linha_update = 1;  
-  }
+  // if (sensorInfraRight > 100) {
+  //   achou_linha_update = 1;  
+  // }
 
-  // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
-  if (sensorInfraCenter > 100) {
-    achou_linha_update = -1;
-  }
+  // // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
+  // if (sensorInfraCenter > 100) {
+  //   achou_linha_update = -1;
+  // }
 
-  // Continuar virando para esquerda
-  if (achou_linha_update > 0) {
-    MDC_vira('R');
-  }
+  // // Continuar virando para esquerda
+  // if (achou_linha_update > 0) {
+  //   MDC_vira('R');
+  // }
 
-  return achou_linha_update;
+  return -1;
 }
 
 /* Função que vira o robô 180 graus, usando sensores */
 int MDC_vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfraCenter, int achouLinha){
-  Serial.print("entrou3");
-  // setando enable nos motores
-  MDC_liga_motores();
-  int achou_linha_update = achouLinha;
+
+  MDC_vira('B');
+
+  // int achou_linha_update = achouLinha;
 
   // Verificando se o sensor da esquerda achou a linha (significa que deve continuar a virar mas ta quase chegando)
-  if (sensorInfraRight > 0 || sensorInfraLeft > 0) {
-    achou_linha_update = 1;  
-  }
+  // if (sensorInfraRight > 0 || sensorInfraLeft > 0) {
+  //   achou_linha_update = 1;  
+  // }
 
-  // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
-  if (sensorInfraCenter > 0) {
-    achou_linha_update = -1;
-  }
+  // // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
+  // if (sensorInfraCenter > 0) {
+  //   achou_linha_update = -1;
+  // }
 
-  // Continuar virando para esquerda
-  if (achou_linha_update > 0) {
-    MDC_vira('B');
-  }
+  // // Continuar virando para esquerda
+  // if (achou_linha_update > 0) {
+  //   MDC_vira('B');
+  // }
 
-  return achou_linha_update;
+  return -1;
 }
