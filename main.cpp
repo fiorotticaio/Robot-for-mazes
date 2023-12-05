@@ -10,6 +10,7 @@ Valor do pino lendo total preto: 3800
 #define SI_PINO_SLC 32
 #define SI_PINO_SRC 36
 #define SI_CS_SENSORS 5
+#define SI_THRESHOLD 100
 
 void SI_init_sensor_infra();
 
@@ -26,6 +27,7 @@ void SI_init_sensor_infra();
 #define DIREITA 1
 #define ESQUERDA 0
 #define TRAS -1
+#define FRENTE 2
 #define TEMPO_DE_VIRAR 900
 
 void MDC_init_motores_dc() ;
@@ -47,13 +49,38 @@ float MDC_kp = 0.0078947368;      // constante proporcional
 /* 30 / 3800 = 0.0078947368 */
 
 
+/*============================== SERVO ==============================*/
+#include <ESP32Servo.h> // não sei se precisa
+
+#define SERV_ANGULO_ESQUERDA 0
+#define SERV_ANGULO_CENTRO 90
+#define SERV_ANGULO_DIREITA 180
+#define SERV_PINO 13
+#define SERV_MIN 500
+#define SERV_MAX 2500
+Servo SERV_servo;
+int SERV_decide_para_onde_virar();
+
+
+/*============================ ULTRASSOM ============================*/
+#define USOM_TRIGGER_PIN 16
+#define USOM_ECHO_PIN 19
+#define USOM_THRESHOLD_PAREDE = 15 // centimetros (em tese)
+int USOM_distancia_parede = 0;
+void USOM_init_sensor_ultrasom();
+int USOM_le_distancia();
+int USOM_media_das_distancias() ;
+
 
 /*======================== PROGRAMA PRINCIPAL ========================*/
 void setup() {
   Serial.begin(9600); // Inicializando a comunicação serial
 
-  SI_init_sensor_infra(); // Inicializando os sensores infra vermelho
-  MDC_init_motores_dc(); // Inicializando os motores DC
+  SI_init_sensor_infra();      // Inicializando os sensores infra vermelho
+  MDC_init_motores_dc();       // Inicializando os motores DC
+  USOM_init_sensor_ultrasom(); // Inicializando o sensor ultrassom
+
+  SERV_servo.attach(SERV_PINO, SERV_MIN, SERV_MAX); // Inicializando o servo motor
 }
 
 void loop() {
@@ -75,29 +102,34 @@ void loop() {
   Serial.println(src);
 
 
-  /* Caso não esteja virando, apenas siga a linha */
+  /* Verificação se precisa virar (encontrou cruzamento) */
   if (!MDC_esta_virando) {
-    if (sc > 100 && slc > 100 && src > 100) { // Verifica cruzamento
-      Serial.println("Virar!");
-      MDC_esta_virando = 1;
-      if(slc > 100 && src > 100) { // Cruzamento em T
-        MDC_direcao_esta_virando = ESQUERDA; // Sempre vira para esquerda
-      } else if (slc > 100) {
-        MDC_direcao_esta_virando = ESQUERDA;
-      } else if (src > 100) {
-        MDC_direcao_esta_virando = DIREITA;
-      } else {
-        MDC_esta_virando = 0; // Não é um cruzamento
-      }
+    if (sc > SI_THRESHOLD && slc > SI_THRESHOLD && src > SI_THRESHOLD) { // Verifica cruzamento
+
+      // TODO: talvez precise freiar antes de desligar os motores?
+      // ledcWrite(MDC_PWM1_CH, 128); 
+      // ledcWrite(MDC_PWM2_CH, 128);
+
+      MDC_desliga_motores(); // Desliga motores para ler o ultrassom
+
+      MDC_direcao_esta_virando = SERV_decide_para_onde_virar();
+
+      // Se a resposta do ultrassom nao for "pra frente" então precisa virar
+      if (MDC_direcao_esta_virando != FRENTE) MDC_esta_virando = 1; 
+
+      MDC_liga_motores(); // Religa motores
     }
   }
-    
+
+
+  /* Caso não precise virar, apenas siga em linha reta */
   if (!MDC_esta_virando) {
+    
     /* Seguir linha */
-    if (sl < 100 && sr < 100) {
+    if (sl < SI_THRESHOLD && sr < SI_THRESHOLD) {
       MDC_anda_pra_frente();
 
-    } else if ((sl > 100 && sr < 100) || (sl < 100 && sr > 100)) {
+    } else if ((sl > SI_THRESHOLD && sr < SI_THRESHOLD) || (sl < SI_THRESHOLD && sr > SI_THRESHOLD)) {
       /* Virar a direita com controle proporcional */
       int velocidadeDir = 170 + MDC_kp * sl;
       int velocidadeEsq = 84 - MDC_kp * sr;
@@ -105,8 +137,8 @@ void loop() {
       ledcWrite(MDC_PWM1_CH, velocidadeDir);
       ledcWrite(MDC_PWM2_CH, velocidadeEsq);
 
-    } else if (slc < 100 && sc < 100 && src < 100 && sl < 100 && sr < 100) { // Caminho sem saida, fica parado
-      ledcWrite(MDC_PWM1_CH, 128);
+    } else if (slc < SI_THRESHOLD && sc < SI_THRESHOLD && src < SI_THRESHOLD && sl < SI_THRESHOLD && sr < SI_THRESHOLD) { // Caminho sem saida, fica parado
+      ledcWrite(MDC_PWM1_CH, 128); 
       ledcWrite(MDC_PWM2_CH, 128);
     }
 
@@ -307,4 +339,70 @@ int MDC_vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfr
   // }
 
   return -1;
+}
+
+
+/*=========================== ULTRASSOM ===========================*/
+
+void USOM_init_sensor_ultrasom(){
+  pinMode(USOM_TRIGGER_PIN, OUTPUT);    // Configura o trigger (manda o pulso)
+  pinMode(USOM_ECHO_PIN, INPUT);        // Configura o echo (recebe o pulso)
+}
+
+/* Função que retorna a distancia vista no sensor ultrassom */
+int USOM_le_distancia(){
+
+  digitalWrite(USOM_TRIGGER_PIN, LOW);  // Começa em zero o pulso
+  delayMicroseconds(2);       
+
+  digitalWrite(USOM_TRIGGER_PIN, HIGH); // Manda pulso
+  delayMicroseconds(10);
+
+  digitalWrite(USOM_TRIGGER_PIN, LOW);  // Volta pra zero o pulso
+  
+  tempo = pulseIn(USOM_ECHO_PIN, HIGH); // Recebe o tempo que demorou para o pulso percorrer tudo (ida e volta) em ms
+
+  /* velocidade do som: 343m/s = 0.0343 cm/us (divide por dois pois é ida e volta) */
+  distancia = 0.01723 * tempo;
+
+  Serial.print("ULTRASOM: ")
+  Serial.println(distancia)
+
+  return distancia; 
+}
+
+
+/* Função que retorna a média dos últimos n valores lidos no ultrassom a partir do momento em que foi chamada */
+int USOM_media_das_distancias() {
+  int n = 5, soma = 0, i = 0;
+  
+  for(i=0;i<n;i++){
+    soma+=USOM_le_distancia();
+    
+    //TODO: talvez precise de delay para estabilizar
+    // delay(10); 
+  }
+
+  return soma/n;
+}
+
+
+/*=========================== SERVO ===========================*/
+
+
+/* Função que retorna a direção em que não há parede de acordo com o sensor ultrassom */
+int SERV_decide_para_onde_virar(){
+  SERV_servo.write(SERV_ANGULO_CENTRO);             // Aponta pra frente do carrinho
+  USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
+  if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return FRENTE;
+
+  SERV_servo.write(SERV_ANGULO_ESQUERDA);           // Aponta pra esquerda do carrinho
+  USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
+  if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return ESQUERDA;
+
+  SERV_servo.write(SERV_ANGULO_DIREITA);            // Aponta pra direita do carrinho
+  USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
+  if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return DIREITA;
+
+  return TRAS;
 }
