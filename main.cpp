@@ -3,13 +3,12 @@
 Valor do pino lendo total branco: 0
 Valor do pino lendo total preto: 3800
 */
-
 #define SI_PINO_SL 35
 #define SI_PINO_SC 34
 #define SI_PINO_SR 39
 #define SI_PINO_SLC 32
 #define SI_PINO_SRC 36
-#define SI_CS_SENSORS 5
+#define SI_CS_SENSOLCD_RS 5
 #define SI_THRESHOLD 100
 
 void SI_init_sensor_infra();
@@ -58,18 +57,54 @@ float MDC_kp = 0.0078947368;      // constante proporcional
 #define SERV_PINO 13
 #define SERV_MIN 500
 #define SERV_MAX 2500
-Servo SERV_servo;
+
 int SERV_decide_para_onde_virar();
+
+Servo SERV_servo;
 
 
 /*============================ ULTRASSOM ============================*/
 #define USOM_TRIGGER_PIN 16
 #define USOM_ECHO_PIN 19
 #define USOM_THRESHOLD_PAREDE = 15 // centimetros (em tese)
-int USOM_distancia_parede = 0;
+
 void USOM_init_sensor_ultrasom();
 int USOM_le_distancia();
 int USOM_media_das_distancias() ;
+
+int USOM_distancia_parede = 0;
+
+
+/*============================ LCD ============================*/
+#define LCD_RS 13
+#define LCD_EN 12
+#define LCD_DATA[] = {};
+#define LCD_RL 7
+#define LCD_FUNCTION_SET 0x20 // 0010 0000 - 4 bits
+#define LCD_DISPLAY_CONTROL 0x0C // 0000 1100
+#define LCD_CLEAR_DISPLAY 0x01 // 0000 0001
+#define LCD_RETURN_HOME 0x02 // 0000 0010
+#define LCD_ENTRY_MODE_SET 0x06 // 0000 0110
+#define LCD_MOVE_DISPLAY_RIGHT 0x1C // 0001 1100
+#define LCD_MOVE_CURSOR_DOWN 0xC0 // 1100 0000
+#define LCD_MOVE_CURSOR_LEFT 0x10 // 0001 0000
+#define LCD_LCD_DISPLAYON 0x04
+#define LCD_LCD_DISPLAYOFF 0x00
+#define LCD_DISPLAY_FUNCTION 0x08
+
+void LCD_pulse_enable();
+void LCD_init();
+void LCD_write4bits(int value);
+void LCD_write8bits(int value);
+void LCD_writeData(char* value);
+void LCD_mostra_dados(int sl, int sc, int sr, int slc, int src);
+
+char LCD_distancia_parede[10];
+char LCD_sl[10];
+char LCD_sc[10];
+char LCD_sr[10];
+char LCD_slc[10];
+char LCD_src[10];
 
 
 /*======================== PROGRAMA PRINCIPAL ========================*/
@@ -79,6 +114,7 @@ void setup() {
   SI_init_sensor_infra();      // Inicializando os sensores infra vermelho
   MDC_init_motores_dc();       // Inicializando os motores DC
   USOM_init_sensor_ultrasom(); // Inicializando o sensor ultrassom
+  LCD_init();                  // Inicializando o LCD
 
   SERV_servo.attach(SERV_PINO, SERV_MIN, SERV_MAX); // Inicializando o servo motor
 }
@@ -102,6 +138,9 @@ void loop() {
   Serial.println(src);
 
 
+  LCD_mostra_dados(sl, sc, sr, slc, src); // Mostra dados no LCD
+
+  
   /* Verificação se precisa virar (encontrou cruzamento) */
   if (!MDC_esta_virando) {
     if (sc > SI_THRESHOLD && slc > SI_THRESHOLD && src > SI_THRESHOLD) { // Verifica cruzamento
@@ -343,7 +382,7 @@ int MDC_vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfr
 
 
 /*=========================== ULTRASSOM ===========================*/
-
+/* Função que inicializa o sensor ultrassom */
 void USOM_init_sensor_ultrasom(){
   pinMode(USOM_TRIGGER_PIN, OUTPUT);    // Configura o trigger (manda o pulso)
   pinMode(USOM_ECHO_PIN, INPUT);        // Configura o echo (recebe o pulso)
@@ -371,7 +410,6 @@ int USOM_le_distancia(){
   return distancia; 
 }
 
-
 /* Função que retorna a média dos últimos n valores lidos no ultrassom a partir do momento em que foi chamada */
 int USOM_media_das_distancias() {
   int n = 5, soma = 0, i = 0;
@@ -388,8 +426,6 @@ int USOM_media_das_distancias() {
 
 
 /*=========================== SERVO ===========================*/
-
-
 /* Função que retorna a direção em que não há parede de acordo com o sensor ultrassom */
 int SERV_decide_para_onde_virar(){
   SERV_servo.write(SERV_ANGULO_CENTRO);             // Aponta pra frente do carrinho
@@ -405,4 +441,122 @@ int SERV_decide_para_onde_virar(){
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return DIREITA;
 
   return TRAS;
+}
+
+
+/*=========================== LCD ===========================*/
+/* Função que mostra os dados no LCD */
+void LCD_pulse_enable() {
+  // Certificando-se de que o pino está BAIXO inicialmente
+  digitalWrite(LCD_EN, LOW);
+  delayMicroseconds(1);
+  
+  // Pulsando o pino de Habilitação (Enable)
+  digitalWrite(LCD_EN, HIGH);
+  delayMicroseconds(1);
+  digitalWrite(LCD_EN, LOW);
+  delayMicroseconds(100);
+}
+
+/* Função que inicializa o display conforme a Figura 24 do datasheet  HD44780U */
+void LCD_init() {
+  pinMode(LCD_RS, OUTPUT);
+  pinMode(LCD_EN, OUTPUT);
+  for(int i = 0; i < 4; i++) {
+    pinMode(LCD_DATA[i], OUTPUT);
+  }
+
+  // Aguardando inicialmente
+  delay(40);
+  
+  //Serial.println("Função set 4 bits 0b0010.");
+  digitalWrite(LCD_RS, LOW);
+  
+  // Define a função de interface com 4 bits
+  write4bits(LCD_FUNCTION_SET >> 4);
+  delayMicroseconds(4500); // Um pouco mais que 4,1 ms
+  
+  // Agora, configuramos:
+  // - Número de linhas no display (2 linhas: 16x2)
+  // - Tamanho da matriz de pixels (5x8)
+  // LCD_RS permanece 0 (apenas é 1 ao escrever)
+  //Serial.println("Função set 4 bits 0b0010 1000.");
+  write8bits(LCD_FUNCTION_SET | LCD_DISPLAY_FUNCTION);
+  
+  // Desliga o display
+  //Serial.println("Controle ON/OFF do Display 0b0000 1100.");
+  write8bits(LCD_DISPLAY_CONTROL); 
+  
+  // Define o modo de entrada
+  //Serial.println("Modo de entrada setado 0b0000 0110.");
+  write8bits(LCD_ENTRY_MODE_SET); 
+  
+  // Limpa e retorna à posição inicial
+  write8bits(LCD_CLEAR_DISPLAY);
+  write8bits(LCD_RETURN_HOME);
+  delay(2); // Necessário um atraso de 1,52ms para o comando Return Home
+}
+
+/* Função que envia de fato os comandos para o display */
+void LCD_write4bits(int valor) {
+  for(int i = 0; i < 4; i++) {
+    // Somente o valor correspondente ao bit de interesse
+    digitalWrite(LCD_DATA[i], (valor>>(3-i)) & 0x1);
+  }
+  pulseEnable();
+}
+
+/* Função que escreve metade dos dados primeiro, depois a segunda metade */
+void LCD_write8bits(int valor) {
+  // Envia a primeira metade dos dados (parte superior):
+  write4bits(valor>>4);
+  // Envia a última metade dos dados (parte inferior):
+  write4bits(valor);
+}
+
+/* Função que escreve os dados no display */
+void LCD_writeData(char* valor) {
+  char c;
+  for (int i = 0; i < strlen(valor); i++) {
+    c = valor[i];
+    
+    digitalWrite(LCD_RS, HIGH);
+    write8bits(c);
+    digitalWrite(LCD_RS, LOW);
+  }
+}
+
+/* Função que mostra os dados no LCD */
+void LCD_mostra_dados(int sl, int sc, int sr, int slc, int src) {
+  write8bits(LCD_CLEAR_DISPLAY);
+  write8bits(LCD_RETURN_HOME);
+  delay(2); // 1.52 ms de delay necessários para o comando de Return Home
+  writeData("Distancia us: ");
+
+  int dist = USOM_media_das_distancias();
+
+  /* Escrevendo a distância do ultrassom no display */
+  sprintf(LCD_distancia_parede, "%d", dist);
+  writeData(LCD_distancia_parede);
+
+  write8bits(LCD_MOVE_CURSOR_DOWN); // Quabra de linha
+  delay(2); //FIXME: não sei se precisa
+
+  /* Escrevendo os dados dos sensores de linha no display */
+  sprintf(LCD_sl, "%d", sl);
+  sprintf(LCD_sc, "%d", sc);
+  sprintf(LCD_sr, "%d", sr);
+  sprintf(LCD_slc, "%d", slc);
+  sprintf(LCD_src, "%d", src);
+  writeData(LCD_sl);
+  writeData(" ");
+  writeData(LCD_sc);
+  writeData(" ");
+  writeData(LCD_sr);
+  writeData(" ");
+  writeData(LCD_slc);
+  writeData(" ");
+  writeData(LCD_src);
+
+  //TODO: Escrever o nível de bateria no display
 }
