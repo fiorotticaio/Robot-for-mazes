@@ -72,6 +72,15 @@ int USOM_le_distancia();
 int USOM_media_das_distancias() ;
 
 
+/*============================ GIROSCOPIO ============================*/
+#define GIRO_SDA_MPU 21
+#define GIRO_SCL_MPU 22
+
+void GIRO_init_giroscopio();
+float GIRO_le_sda();
+float GIRO_le_scl();
+
+
 /*======================== PROGRAMA PRINCIPAL ========================*/
 void setup() {
   Serial.begin(9600); // Inicializando a comunicação serial
@@ -79,6 +88,7 @@ void setup() {
   SI_init_sensor_infra();      // Inicializando os sensores infra vermelho
   MDC_init_motores_dc();       // Inicializando os motores DC
   USOM_init_sensor_ultrasom(); // Inicializando o sensor ultrassom
+  GIRO_init_giroscopio();      // Inicializando o giroscópio
 
   SERV_servo.attach(SERV_PINO, SERV_MIN, SERV_MAX); // Inicializando o servo motor
 }
@@ -100,6 +110,15 @@ void loop() {
   Serial.print(slc);
   Serial.print(" ");
   Serial.println(src);
+
+
+  /* Lendo os dados do gisroscópio */
+  float sda = analogRead(GIRO_SDA_MPU);
+  float scl = analogRead(GIRO_SCL_MPU);
+
+  Serial.print(sda);
+  Serial.print(" ");
+  Serial.println(scl);
 
 
   /* Verificação se precisa virar (encontrou cruzamento) */
@@ -405,4 +424,12 @@ int SERV_decide_para_onde_virar(){
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return DIREITA;
 
   return TRAS;
+}
+
+
+/*============================ GIROSCOPIO ============================*/
+/* Função que inicializa os pinos do giroscópio */
+void GIRO_init_giroscopio() {
+  pinMode(GIRO_SDA_MPU, INPUT);
+  pinMode(GIRO_SCL_MPU, INPUT);
 }
