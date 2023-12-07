@@ -73,12 +73,17 @@ int USOM_media_das_distancias() ;
 
 
 /*============================ GIROSCOPIO ============================*/
+#include "Wire.h"
+#include <MPU6050_light.h>
+
 #define GIRO_SDA_MPU 21
 #define GIRO_SCL_MPU 22
 
 void GIRO_init_giroscopio();
 float GIRO_le_sda();
 float GIRO_le_scl();
+
+MPU6050 mpu(Wire);
 
 
 /*======================== PROGRAMA PRINCIPAL ========================*/
@@ -113,12 +118,21 @@ void loop() {
 
 
   /* Lendo os dados do gisroscópio */
-  float sda = analogRead(GIRO_SDA_MPU);
-  float scl = analogRead(GIRO_SCL_MPU);
+  mpu.update(); // Atualiza os dados do giroscópio
+  float angulo[3] = {mpu.getAngleX(), mpu.getAngleY(), mpu.getAngleZ()}; // Vetor com os angulos de cada eixo
+  float aceleracao[3] = {mpu.getAccX(), mpu.getAccY(), mpu.getAccZ()}; // Vetor com as acelerações de cada eixo
 
-  Serial.print(sda);
+  Serial.print(angulo[0]);
   Serial.print(" ");
-  Serial.println(scl);
+  Serial.print(angulo[1]);
+  Serial.print(" ");
+  Serial.print(angulo[2]);
+  Serial.print(" ");
+  Serial.print(aceleracao[0]);
+  Serial.print(" ");
+  Serial.print(aceleracao[1]);
+  Serial.print(" ");
+  Serial.println(aceleracao[2]);
 
 
   /* Verificação se precisa virar (encontrou cruzamento) */
@@ -432,4 +446,8 @@ int SERV_decide_para_onde_virar(){
 void GIRO_init_giroscopio() {
   pinMode(GIRO_SDA_MPU, INPUT);
   pinMode(GIRO_SCL_MPU, INPUT);
+
+  Wire.begin();
+  mpu.begin();
+  mpu.calcGyroOffsets();
 }
