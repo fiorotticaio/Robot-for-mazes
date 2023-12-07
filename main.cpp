@@ -65,7 +65,7 @@ int SERV_decide_para_onde_virar();
 /*============================ ULTRASSOM ============================*/
 #define USOM_TRIGGER_PIN 16
 #define USOM_ECHO_PIN 19
-#define USOM_THRESHOLD_PAREDE = 15 // centimetros (em tese)
+#define USOM_THRESHOLD_PAREDE 15 // centimetros (em tese)
 int USOM_distancia_parede = 0;
 void USOM_init_sensor_ultrasom();
 int USOM_le_distancia();
@@ -360,13 +360,13 @@ int USOM_le_distancia(){
 
   digitalWrite(USOM_TRIGGER_PIN, LOW);  // Volta pra zero o pulso
   
-  tempo = pulseIn(USOM_ECHO_PIN, HIGH); // Recebe o tempo que demorou para o pulso percorrer tudo (ida e volta) em ms
+  float tempo = pulseIn(USOM_ECHO_PIN, HIGH); // Recebe o tempo que demorou para o pulso percorrer tudo (ida e volta) em ms
 
   /* velocidade do som: 343m/s = 0.0343 cm/us (divide por dois pois é ida e volta) */
-  distancia = 0.01723 * tempo;
+  float distancia = 0.01723 * tempo;
 
-  Serial.print("ULTRASOM: ")
-  Serial.println(distancia)
+  Serial.print("ULTRASOM: ");
+  Serial.println(distancia);
 
   return distancia; 
 }
