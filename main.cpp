@@ -20,21 +20,20 @@ void SI_init_sensor_infra();
 #define MDC_PINO_E_M2 26
 #define MDC_PINO_M1 25
 #define MDC_PINO_M2 27
-#define MDC_PWM1_CH 0 // Direita
-#define MDC_PWM2_CH 1 // Esquerda
+#define MDC_PWM1_CH 2 // Direita
+#define MDC_PWM2_CH 3 // Esquerda
 #define MDC_PWM_FREQ 1000  // 1 kHz
 #define MDC_PWM_RES 8      // 8 bits
 #define DIREITA 1
 #define ESQUERDA 0
 #define TRAS -1
 #define FRENTE 2
-#define TEMPO_DE_VIRAR 900
+#define TEMPO_DE_VIRAR 750
 
 void MDC_init_motores_dc() ;
 void MDC_liga_motores();
 void MDC_desliga_motores();
 void MDC_anda_pra_frente();
-void MDC_freia_ate_parar();
 void MDC_vira(char direcao);
 int MDC_vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha);
 int MDC_vira_pra_direita(int sensorInfraRight, int sensorInfraCenter, int achouLinha);
@@ -49,38 +48,52 @@ float MDC_kp = 0.0078947368;      // constante proporcional
 /* 30 / 3800 = 0.0078947368 */
 
 
+/*============================== GIROSCOPIO ==============================*/
+#include "Wire.h"
+#include <MPU6050_light.h>
+
+void GIRO_init_giroscopio();
+
+MPU6050 mpu(Wire);
+
+
 /*============================== SERVO ==============================*/
 #include <ESP32Servo.h> // não sei se precisa
 
-#define SERV_ANGULO_ESQUERDA 0
+#define SERV_ANGULO_ESQUERDA 170
 #define SERV_ANGULO_CENTRO 90
-#define SERV_ANGULO_DIREITA 180
+#define SERV_ANGULO_DIREITA 0
 #define SERV_PINO 13
 #define SERV_MIN 500
 #define SERV_MAX 2500
-Servo SERV_servo;
+
 int SERV_decide_para_onde_virar();
+
+Servo SERV_servo;
 
 
 /*============================ ULTRASSOM ============================*/
 #define USOM_TRIGGER_PIN 16
 #define USOM_ECHO_PIN 19
-#define USOM_THRESHOLD_PAREDE 15 // centimetros (em tese)
-int USOM_distancia_parede = 0;
+#define USOM_THRESHOLD_PAREDE 15 // centimetros
+
 void USOM_init_sensor_ultrasom();
 int USOM_le_distancia();
 int USOM_media_das_distancias() ;
+
+int USOM_distancia_parede = 0;
 
 
 /*======================== PROGRAMA PRINCIPAL ========================*/
 void setup() {
   Serial.begin(9600); // Inicializando a comunicação serial
 
+  // USOM_init_sensor_ultrasom(); // Inicializando o sensor ultrassom
+  // SERV_servo.attach(SERV_PINO, SERV_MIN, SERV_MAX); // Inicializando o servo motor
+  // SERV_servo.write(SERV_ANGULO_CENTRO); // Começar com o ultrassom virado pra frente
   SI_init_sensor_infra();      // Inicializando os sensores infra vermelho
   MDC_init_motores_dc();       // Inicializando os motores DC
-  USOM_init_sensor_ultrasom(); // Inicializando o sensor ultrassom
-
-  SERV_servo.attach(SERV_PINO, SERV_MIN, SERV_MAX); // Inicializando o servo motor
+  GIRO_init_giroscopio();      // Inicializando o giroscópio
 }
 
 void loop() {
@@ -105,41 +118,41 @@ void loop() {
   /* Verificação se precisa virar (encontrou cruzamento) */
   if (!MDC_esta_virando) {
     if (sc > SI_THRESHOLD && slc > SI_THRESHOLD && src > SI_THRESHOLD) { // Verifica cruzamento
+      
+      MDC_esta_virando = 1; 
 
-      // TODO: talvez precise freiar antes de desligar os motores?
-      // ledcWrite(MDC_PWM1_CH, 128); 
-      // ledcWrite(MDC_PWM2_CH, 128);
+      // Serial.println("CRUZAMENTOOOOOO");
+      
+      // MDC_desliga_motores(); // Desliga motores para ler o ultrassom
 
-      MDC_desliga_motores(); // Desliga motores para ler o ultrassom
+      // MDC_direcao_esta_virando = SERV_decide_para_onde_virar();
 
-      MDC_direcao_esta_virando = SERV_decide_para_onde_virar();
+      // // Se a resposta do ultrassom nao for "pra frente" então precisa virar
+      // if (MDC_direcao_esta_virando != FRENTE) MDC_esta_virando = 1; 
 
-      // Se a resposta do ultrassom nao for "pra frente" então precisa virar
-      if (MDC_direcao_esta_virando != FRENTE) MDC_esta_virando = 1; 
-
-      MDC_liga_motores(); // Religa motores
+      // MDC_liga_motores(); // Religa motores
     }
   }
 
 
-  /* Caso não precise virar, apenas siga em linha reta */
+  // /* Caso não precise virar, apenas siga em linha reta */
   if (!MDC_esta_virando) {
     
     /* Seguir linha */
-    if (sl < SI_THRESHOLD && sr < SI_THRESHOLD) {
-      MDC_anda_pra_frente();
+    if (slc < SI_THRESHOLD && sc < SI_THRESHOLD && src < SI_THRESHOLD && sl < SI_THRESHOLD && sr < SI_THRESHOLD) { // Está fora da linha, fica parado
+      ledcWrite(MDC_PWM1_CH, 128); 
+      ledcWrite(MDC_PWM2_CH, 128);
 
-    } else if ((sl > SI_THRESHOLD && sr < SI_THRESHOLD) || (sl < SI_THRESHOLD && sr > SI_THRESHOLD)) {
+    } else if ((sl > SI_THRESHOLD && sr < SI_THRESHOLD) || (sl < SI_THRESHOLD && sr > SI_THRESHOLD)) { // Controle proporcional
       /* Virar a direita com controle proporcional */
-      int velocidadeDir = 170 + MDC_kp * sl;
-      int velocidadeEsq = 84 - MDC_kp * sr;
+      int velocidadeDir = 157 + MDC_kp * sl;
+      int velocidadeEsq = 97 - MDC_kp * sr;
         
       ledcWrite(MDC_PWM1_CH, velocidadeDir);
       ledcWrite(MDC_PWM2_CH, velocidadeEsq);
 
-    } else if (slc < SI_THRESHOLD && sc < SI_THRESHOLD && src < SI_THRESHOLD && sl < SI_THRESHOLD && sr < SI_THRESHOLD) { // Caminho sem saida, fica parado
-      ledcWrite(MDC_PWM1_CH, 128); 
-      ledcWrite(MDC_PWM2_CH, 128);
+    } else if (sl < SI_THRESHOLD && sr < SI_THRESHOLD) { // Vai reto
+      MDC_anda_pra_frente();
     }
 
   } else { // Caso esteja virando, então continue virando até terminar
@@ -153,17 +166,15 @@ void loop() {
         MDC_esta_virando = 0;
       }
 
-    } else if (MDC_direcao_esta_virando == 1) { // Virando para a direita
+    } else if (MDC_direcao_esta_virando == DIREITA) { // Virando para a direita
       MDC_achou_linha_virando = MDC_vira_pra_direita(src, sc, MDC_achou_linha_virando);
       
       /* Terminou de virar */
       if (MDC_achou_linha_virando == -1){
         MDC_esta_virando = 0;
       }
-    }
 
-    /* Virando para trás */
-    else if (MDC_direcao_esta_virando == -1) {
+    } else if (MDC_direcao_esta_virando == TRAS) { // Tras
       MDC_achou_linha_virando = MDC_vira_180_graus(slc, src, sc, MDC_achou_linha_virando);
       
       /* Terminou de virar */
@@ -224,41 +235,55 @@ void MDC_desliga_motores(){
 
 /* Função para andar pra frente sem parar */
 void MDC_anda_pra_frente(){
-  Serial.println("Entrou");
-  ledcWrite(MDC_PWM1_CH, 170);
-  ledcWrite(MDC_PWM2_CH, 84);
-}
-
-/* Função que freia, lendo sensores para saber se já pode parar de desacelerar */
-void MDC_freia_ate_parar() {
-  // TODO: precisa adicionar dinamica com sensores
-  ledcWrite(MDC_PWM1_CH, 50);
-  ledcWrite(MDC_PWM2_CH, 50);
+  ledcWrite(MDC_PWM1_CH, 157);
+  ledcWrite(MDC_PWM2_CH, 97);
 }
 
 /* Função que vira o robô para esquerda, direita ou 180 graus */
 void MDC_vira(char direcao){
   // 0 - 127 = trás
   // 128 - 255 = frente
+  mpu.update();
+  float pos_inicial = mpu.getAngleZ();
+  float pos_atual = pos_inicial;
+
   switch(direcao) {
     case 'L':
-        // Vira para esquerda
-        ledcWrite(MDC_PWM1_CH, 170);
-        ledcWrite(MDC_PWM2_CH, 170);
-        delay(TEMPO_DE_VIRAR);
-        break;
+      // Vira para esquerda
+      ledcWrite(MDC_PWM1_CH, 170);
+      ledcWrite(MDC_PWM2_CH, 170);
+      
+      /* Vira um angulo de 85 graus */
+      while (pos_atual < pos_inicial + 85) {
+        mpu.update();
+        pos_atual = mpu.getAngleZ();
+      }
+      break;
+
     case 'R':
-        // Virar para direita
-        ledcWrite(MDC_PWM1_CH, 84);
-        ledcWrite(MDC_PWM2_CH, 84);
-        delay(TEMPO_DE_VIRAR);
-        break;
+      // Virar para direita
+      ledcWrite(MDC_PWM1_CH, 84);
+      ledcWrite(MDC_PWM2_CH, 84);
+
+      /* Vira um angulo de 85 graus */
+      while (pos_atual > pos_inicial - 85) {
+        mpu.update();
+        pos_atual = mpu.getAngleZ();
+      }
+      break;
+
     case 'B':
-        // Vira 180 graus
-        ledcWrite(MDC_PWM1_CH, 170);
-        ledcWrite(MDC_PWM2_CH, 170);
-        delay(2*TEMPO_DE_VIRAR);
-        break;
+      // Vira 180 graus
+      ledcWrite(MDC_PWM1_CH, 170);
+      ledcWrite(MDC_PWM2_CH, 170);
+      
+      /* Vira um angulo de 85*2 graus */
+      while (pos_atual < pos_inicial + 85*2) {
+        mpu.update();
+        pos_atual = mpu.getAngleZ();
+      }
+      break;
+
     case 'S':
         // Faz nada
         break;
@@ -343,7 +368,7 @@ int MDC_vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfr
 
 
 /*=========================== ULTRASSOM ===========================*/
-
+/* Função que inicializa o sensor ultrassom */
 void USOM_init_sensor_ultrasom(){
   pinMode(USOM_TRIGGER_PIN, OUTPUT);    // Configura o trigger (manda o pulso)
   pinMode(USOM_ECHO_PIN, INPUT);        // Configura o echo (recebe o pulso)
@@ -365,22 +390,15 @@ int USOM_le_distancia(){
   /* velocidade do som: 343m/s = 0.0343 cm/us (divide por dois pois é ida e volta) */
   float distancia = 0.01723 * tempo;
 
-  Serial.print("ULTRASOM: ");
-  Serial.println(distancia);
-
   return distancia; 
 }
-
 
 /* Função que retorna a média dos últimos n valores lidos no ultrassom a partir do momento em que foi chamada */
 int USOM_media_das_distancias() {
   int n = 5, soma = 0, i = 0;
   
-  for(i=0;i<n;i++){
-    soma+=USOM_le_distancia();
-    
-    //TODO: talvez precise de delay para estabilizar
-    // delay(10); 
+  for(i = 0; i < n; i++) {
+    soma += USOM_le_distancia();
   }
 
   return soma/n;
@@ -388,21 +406,39 @@ int USOM_media_das_distancias() {
 
 
 /*=========================== SERVO ===========================*/
-
-
 /* Função que retorna a direção em que não há parede de acordo com o sensor ultrassom */
 int SERV_decide_para_onde_virar(){
-  SERV_servo.write(SERV_ANGULO_CENTRO);             // Aponta pra frente do carrinho
-  USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
-  if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return FRENTE;
+  Serial.println("ONDE VIRARRRRRRRRRRR");
+
+  SERV_servo.write(SERV_ANGULO_CENTRO);           // Aponta pra esquerda do carrinho
+  delay(1000);
+  // USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
+  // Serial.print("Distancia centro: ");
+  // Serial.println(USOM_distancia_parede);
+  // if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return FRENTE;
 
   SERV_servo.write(SERV_ANGULO_ESQUERDA);           // Aponta pra esquerda do carrinho
-  USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
-  if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return ESQUERDA;
+  delay(1000);
+  // USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
+  // Serial.print("Distancia esquerda: ");
+  // Serial.println(USOM_distancia_parede);
+  // if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return ESQUERDA;
 
   SERV_servo.write(SERV_ANGULO_DIREITA);            // Aponta pra direita do carrinho
-  USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
-  if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return DIREITA;
+  delay(1000);
+  // USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
+  // Serial.print("Distancia direita: ");
+  // Serial.println(USOM_distancia_parede);
+  // if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return DIREITA;
 
-  return TRAS;
+  return FRENTE;
+}
+
+
+/*============================ GIROSCOPIO ============================*/
+/* Função que inicializa os pinos do giroscópio */
+void GIRO_init_giroscopio() {
+  Wire.begin();
+  mpu.begin();
+  mpu.calcGyroOffsets();
 }
