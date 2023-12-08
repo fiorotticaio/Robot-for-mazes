@@ -161,7 +161,6 @@ void loop() {
       ledcWrite(MDC_PWM2_CH, velocidadeEsq);
 
     } else {
-      Serial.println("TRAVOU AQUI SEI LA PQ");
       /* Segue a linha com controle proporcional */
       int velocidadeDir = vel_m1 + MDC_kp * sl;
       int velocidadeEsq = vel_m2 - MDC_kp * sr;
