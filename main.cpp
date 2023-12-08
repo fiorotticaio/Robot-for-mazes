@@ -3,7 +3,6 @@
 Valor do pino lendo total branco: 0
 Valor do pino lendo total preto: 3800
 */
-
 #define SI_PINO_SL 35
 #define SI_PINO_SC 34
 #define SI_PINO_SR 39
@@ -127,9 +126,7 @@ void loop() {
   /* Verificação se precisa virar (encontrou cruzamento) */
   if (!MDC_esta_virando) {
     if (sc > SI_THRESHOLD && slc > SI_THRESHOLD && src > SI_THRESHOLD) { // Verifica cruzamento
-      
-      // Serial.println("CRUZAMENTOOOOOO");
-      
+            
       MDC_desliga_motores(); // Desliga motores para ler o ultrassom
 
       MDC_direcao_esta_virando = SERV_decide_para_onde_virar();
@@ -148,17 +145,15 @@ void loop() {
   }
 
 
-  // /* Caso não precise virar, apenas siga em linha reta */
+  /* Caso não precise virar, apenas siga em linha reta */
   if (!MDC_esta_virando) {
 
     if (slc < SI_THRESHOLD && sc < SI_THRESHOLD && src < SI_THRESHOLD && sl < SI_THRESHOLD && sr < SI_THRESHOLD) { // Está fora da linha, fica parado
-      Serial.println("TRAVOU PQ LEU BRANCO");
       ledcWrite(MDC_PWM1_CH, 128); 
       ledcWrite(MDC_PWM2_CH, 128);
 
     } else if (sc > SI_THRESHOLD && sl > SI_THRESHOLD && sr > SI_THRESHOLD) { // Está chegando cruzamento, diminui a velocidade
       /* Segue a linha com controle proporcional mas velocidade menor */
-      Serial.println("TRAVOU POR CAUSA DA VELOCIDADE BAIXA");
       vel_m1 = VEL_FREIANDO_DIREITA;
       vel_m2 = VEL_FREIANDO_ESQUERDA;
 
@@ -181,32 +176,10 @@ void loop() {
 
   } else { // Caso esteja virando, então continue virando até terminar
     
-    /* Virando para esquerda */
-    if (MDC_direcao_esta_virando == ESQUERDA) {
-      MDC_achou_linha_virando = MDC_vira_pra_esquerda(slc, sc, MDC_achou_linha_virando);
-      
-      /* Terminou de virar */
-      if (MDC_achou_linha_virando == -1){
-        MDC_esta_virando = 0;
-      }
-
-    } else if (MDC_direcao_esta_virando == DIREITA) { // Virando para a direita
-      MDC_achou_linha_virando = MDC_vira_pra_direita(src, sc, MDC_achou_linha_virando);
-      
-      /* Terminou de virar */
-      if (MDC_achou_linha_virando == -1){
-        MDC_esta_virando = 0;
-      }
-
-    } else if (MDC_direcao_esta_virando == TRAS) { // Tras
-      MDC_achou_linha_virando = MDC_vira_180_graus(slc, src, sc, MDC_achou_linha_virando);
-      
-      /* Terminou de virar */
-      if (MDC_achou_linha_virando == -1) {
-        MDC_esta_virando = 0;
-      }
-    }
-
+    if      (MDC_direcao_esta_virando == ESQUERDA) MDC_vira('L');
+    else if (MDC_direcao_esta_virando == DIREITA)  MDC_vira('R');
+    else if (MDC_direcao_esta_virando == TRAS)     MDC_vira('B');
+    
     /* Volta velocidade ao normal */
     vel_m1 = VEL_PADRAO_DIREITA;
     vel_m2 = VEL_PADRAO_ESQUERDA;
@@ -326,82 +299,6 @@ void MDC_vira(char direcao){
   }
 }
 
-/* Função que vira o robô para esquerda, usando sensores */
-int MDC_vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha){
-
-  MDC_vira('L');
-
-  // int achou_linha_update = achouLinha;
-
-  // // Verificando se o sensor da esquerda achou a linha (significa que deve continuar a virar mas ta quase chegando)
-  // if (sensorInfraLeft > 100) {
-  //   achou_linha_update = 1;  
-  // }
-
-  // // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
-  // if (sensorInfraCenter > 100) {
-  //   achou_linha_update = -1;
-  // }
-
-  // // Continuar virando para esquerda
-  // if (achou_linha_update > 0){
-  //   Serial.println("VIRA!!")
-  //   MDC_vira('L');
-  // }
-
-  return -1;
-}
-
-/* Função que vira  o robô para direita, usando sensores */
-int MDC_vira_pra_direita(int sensorInfraRight, int sensorInfraCenter, int achouLinha){
-  
-  MDC_vira('R');
-
-  // int achou_linha_update = achouLinha;
-
-  // Verificando se o sensor da direita achou a linha (significa que deve continuar a virar mas ta quase chegando)
-  // if (sensorInfraRight > 100) {
-  //   achou_linha_update = 1;  
-  // }
-
-  // // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
-  // if (sensorInfraCenter > 100) {
-  //   achou_linha_update = -1;
-  // }
-
-  // // Continuar virando para esquerda
-  // if (achou_linha_update > 0) {
-  //   MDC_vira('R');
-  // }
-
-  return -1;
-}
-
-/* Função que vira o robô 180 graus, usando sensores */
-int MDC_vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfraCenter, int achouLinha){
-
-  MDC_vira('B');
-
-  // int achou_linha_update = achouLinha;
-
-  // Verificando se o sensor da esquerda achou a linha (significa que deve continuar a virar mas ta quase chegando)
-  // if (sensorInfraRight > 0 || sensorInfraLeft > 0) {
-  //   achou_linha_update = 1;  
-  // }
-
-  // // Verificando se o sensor do centro achou a linha (significa que deve parar de virar)
-  // if (sensorInfraCenter > 0) {
-  //   achou_linha_update = -1;
-  // }
-
-  // // Continuar virando para esquerda
-  // if (achou_linha_update > 0) {
-  //   MDC_vira('B');
-  // }
-
-  return -1;
-}
-
 
 /*=========================== ULTRASSOM ===========================*/
 /* Função que inicializa o sensor ultrassom */
@@ -432,11 +329,7 @@ int USOM_le_distancia(){
 /* Função que retorna a média dos últimos n valores lidos no ultrassom a partir do momento em que foi chamada */
 int USOM_media_das_distancias() {
   int n = 5, soma = 0, i = 0;
-  
-  for(i = 0; i < n; i++) {
-    soma += USOM_le_distancia();
-  }
-
+  for(i = 0; i < n; i++) soma += USOM_le_distancia();
   return soma/n;
 }
 
@@ -444,27 +337,19 @@ int USOM_media_das_distancias() {
 /*=========================== SERVO ===========================*/
 /* Função que retorna a direção em que não há parede de acordo com o sensor ultrassom */
 int SERV_decide_para_onde_virar(){
-  Serial.println("ONDE VIRARRRRRRRRRRR");
-
   SERV_servo.write(SERV_ANGULO_ESQUERDA);           // Aponta pra esquerda do carrinho
   delay(500);
   USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
-  Serial.print("Distancia esquerda: ");
-  Serial.println(USOM_distancia_parede);
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return ESQUERDA;
 
   SERV_servo.write(SERV_ANGULO_CENTRO);           // Aponta pra esquerda do carrinho
   delay(500);
   USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
-  Serial.print("Distancia centro: ");
-  Serial.println(USOM_distancia_parede);
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return FRENTE;
 
   SERV_servo.write(SERV_ANGULO_DIREITA);            // Aponta pra direita do carrinho
   delay(500);
   USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
-  Serial.print("Distancia direita: ");
-  Serial.println(USOM_distancia_parede);
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return DIREITA;
 
   return TRAS;
