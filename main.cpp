@@ -38,9 +38,6 @@ void MDC_liga_motores();
 void MDC_desliga_motores();
 void MDC_anda_pra_frente();
 void MDC_vira(char direcao);
-int MDC_vira_pra_esquerda(int sensorInfraLeft, int sensorInfraCenter, int achouLinha);
-int MDC_vira_pra_direita(int sensorInfraRight, int sensorInfraCenter, int achouLinha);
-int MDC_vira_180_graus(int sensorInfraLeft, int sensorInfraRight, int sensorInfraCenter, int achouLinha);
 
 int MDC_esta_virando = 0;         // 1 está virando, 0 não está virando
 int MDC_direcao_esta_virando = ESQUERDA;
