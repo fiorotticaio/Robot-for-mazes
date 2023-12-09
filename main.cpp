@@ -27,7 +27,6 @@ void SI_init_sensor_infra();
 #define ESQUERDA 0
 #define TRAS -1
 #define FRENTE 2
-#define TEMPO_DE_VIRAR 750
 #define VEL_PADRAO_DIREITA 162
 #define VEL_PADRAO_ESQUERDA 92
 #define VEL_FREIANDO_DIREITA 148
@@ -119,7 +118,6 @@ void loop() {
   Serial.print(" ");
   Serial.println(src);
 
-
   /* Verificação se precisa virar (encontrou cruzamento) */
   if (!MDC_esta_virando) {
     if (sc > SI_THRESHOLD && slc > SI_THRESHOLD && src > SI_THRESHOLD) { // Verifica cruzamento
@@ -129,8 +127,8 @@ void loop() {
       MDC_direcao_esta_virando = SERV_decide_para_onde_virar();
 
       // Se a resposta do ultrassom nao for "pra frente" então precisa virar
-      if (MDC_direcao_esta_virando != FRENTE) MDC_esta_virando = 1; 
-
+      // if (MDC_direcao_esta_virando != FRENTE) MDC_esta_virando = 1;  // TODO: isso aqui nao devia estar aqui, se considerar q ele sempre vai para esquerda
+      
       SERV_servo.write(SERV_ANGULO_CENTRO); // Voltar com o ultrassom virado pra frente
 
       MDC_liga_motores(); // Religa motores
@@ -314,15 +312,17 @@ int USOM_le_distancia(){
 
   digitalWrite(USOM_TRIGGER_PIN, LOW);  // Volta pra zero o pulso
   
-  float tempo = pulseIn(USOM_ECHO_PIN, HIGH); // Recebe o tempo que demorou para o pulso percorrer tudo (ida e volta) em ms
+  // Recebe o tempo que demorou para o pulso percorrer tudo (ida e volta) em ms
+  float tempo = pulseIn(USOM_ECHO_PIN, HIGH); 
 
-  /* velocidade do som: 343m/s = 0.0343 cm/us (divide por dois pois é ida e volta) */
+  /* velocidade do som: 343m/s = 0.0343 cm/us */
   float distancia = 0.01723 * tempo;
 
   return distancia; 
 }
 
-/* Função que retorna a média dos últimos n valores lidos no ultrassom a partir do momento em que foi chamada */
+/* Função que retorna a média dos últimos n valores lidos
+ no ultrassom a partir do momento em que foi chamada */
 int USOM_media_das_distancias() {
   int n = 5, soma = 0, i = 0;
   for(i = 0; i < n; i++) soma += USOM_le_distancia();
@@ -338,7 +338,7 @@ int SERV_decide_para_onde_virar(){
   USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return ESQUERDA;
 
-  SERV_servo.write(SERV_ANGULO_CENTRO);           // Aponta pra esquerda do carrinho
+  SERV_servo.write(SERV_ANGULO_CENTRO);           // Aponta pro centro do carrinho
   delay(500);
   USOM_distancia_parede = USOM_media_das_distancias();  // Lê distancia do ultrassom
   if (USOM_distancia_parede > USOM_THRESHOLD_PAREDE) return FRENTE;
