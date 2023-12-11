@@ -126,8 +126,7 @@ void loop() {
 
       MDC_direcao_esta_virando = SERV_decide_para_onde_virar();
 
-      // Se a resposta do ultrassom nao for "pra frente" então precisa virar
-      // if (MDC_direcao_esta_virando != FRENTE) MDC_esta_virando = 1;  // TODO: isso aqui nao devia estar aqui, se considerar q ele sempre vai para esquerda
+      MDC_esta_virando = 1; // Seta a flag para 1 (mesmo se for pra frente)
       
       SERV_servo.write(SERV_ANGULO_CENTRO); // Voltar com o ultrassom virado pra frente
 
@@ -173,6 +172,8 @@ void loop() {
     if      (MDC_direcao_esta_virando == ESQUERDA) MDC_vira('L');
     else if (MDC_direcao_esta_virando == DIREITA)  MDC_vira('R');
     else if (MDC_direcao_esta_virando == TRAS)     MDC_vira('B');
+
+    MDC_esta_virando = 0;
     
     /* Volta velocidade ao normal */
     vel_m1 = VEL_PADRAO_DIREITA;
@@ -281,7 +282,7 @@ void MDC_vira(char direcao){
       ledcWrite(MDC_PWM2_CH, 170);
       
       /* Vira um angulo de 85*2 graus */
-      while (pos_atual < pos_inicial + GIRO_ANGULO_VIRAR*2) {
+      while (pos_atual < pos_inicial + GIRO_ANGULO_VIRAR*2+3) {
         mpu.update();
         pos_atual = mpu.getAngleZ();
       }
